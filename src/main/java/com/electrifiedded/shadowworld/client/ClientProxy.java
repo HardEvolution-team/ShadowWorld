@@ -68,42 +68,7 @@ public class ClientProxy extends CommonProxy {
         Item.getItemFromBlock(SWContent.Lamp).setTileEntityItemStackRenderer(new LampRenderer.Item());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(DiaryToast.INSTANCE);
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new SWClientEvents());
-        RenderingRegistry.registerEntityRenderingHandler(Shadow.class, m -> new RenderEnderman(m) {
-            @Override protected ResourceLocation getEntityTexture(EntityEnderman e) { return tex("Shadow"); }
-        });
-        RenderingRegistry.registerEntityRenderingHandler(SkeletonSpider.class, m -> new RenderSpider<SkeletonSpider>(m) {
-            @Override protected ResourceLocation getEntityTexture(SkeletonSpider e) { return tex("SkeletonSpider"); }
-            @Override protected void preRenderCallback(SkeletonSpider e, float pt) { GlStateManager.scale(1.3F, 1.3F, 1.3F); }
-        });
-        RenderingRegistry.registerEntityRenderingHandler(WolfSpider.class, m -> new RenderSpider<WolfSpider>(m) {
-            @Override protected ResourceLocation getEntityTexture(WolfSpider e) { return tex("Wolfspider"); }
-            @Override protected void preRenderCallback(WolfSpider e, float pt) { GlStateManager.scale(0.75F, 0.75F, 0.75F); }
-        });
-        RenderingRegistry.registerEntityRenderingHandler(ShadowCreeper.class, m -> new RenderCreeper(m) {
-            @Override protected ResourceLocation getEntityTexture(EntityCreeper e) { return tex("ShadowCreeper"); }
-        });
-        RenderingRegistry.registerEntityRenderingHandler(ExplodingWolf.class, living(new ModelExplodingWolf(), 0.5F, "ExplodingWolf", 1F));
-        RenderingRegistry.registerEntityRenderingHandler(ShadowChicken.class, living(new ModelChicken(), 0.3F, "ShadowChicken", 1F));
-        RenderingRegistry.registerEntityRenderingHandler(ShadowSlime.class, m -> new RenderSlime(m) {
-            @Override protected ResourceLocation getEntityTexture(EntitySlime e) { return tex("ShadowSlime"); }
-        });
-        RenderingRegistry.registerEntityRenderingHandler(CookieSlime.class, m -> new RenderSlime(m) {
-            @Override protected ResourceLocation getEntityTexture(EntitySlime e) { return tex("CookieSlime"); }
-        });
-        RenderingRegistry.registerEntityRenderingHandler(ShadowPig.class, m -> new RenderPig(m) {
-            @Override protected ResourceLocation getEntityTexture(EntityPig e) { return tex("ShadowPig"); }
-        });
-        RenderingRegistry.registerEntityRenderingHandler(CookiePig.class, m -> new RenderPig(m) {
-            @Override protected ResourceLocation getEntityTexture(EntityPig e) { return tex("CookiePig"); }
-        });
-        RenderingRegistry.registerEntityRenderingHandler(PassiveSpider.class, living(new ModelSpider(), 0.8F, "PassiveSpider", 1F));
-        RenderingRegistry.registerEntityRenderingHandler(ShadowWolf.class, m -> new RenderWolf(m) {
-            @Override protected ResourceLocation getEntityTexture(EntityWolf e) { return tex(e.isTamed() ? "ShadowWolf_tame" : e.isAngry() ? "ShadowWolf_angry" : "ShadowWolf"); }
-            @Override protected void preRenderCallback(EntityWolf e, float pt) { GlStateManager.scale(1.5F, 1.5F, 1.5F); }
-        });
-        RenderingRegistry.registerEntityRenderingHandler(JellyFish.class, living(new ModelJellyFish(), 0.5F, "JellyFish", 1F));
-        RenderingRegistry.registerEntityRenderingHandler(Light.class, living(new ModelLight(), 0.1F, "Light", 1F));
-        RenderingRegistry.registerEntityRenderingHandler(Dragonfly.class, living(new ModelShadowDragonfly(), 0.2F, "ShadowDragonfly", 1F));
+        SWMobRenderers.register();
         RenderingRegistry.registerEntityRenderingHandler(FireGolem.class, living(new ModelGolem(), 1.0F, "FireGolem", 1F));
         RenderingRegistry.registerEntityRenderingHandler(EarthGolem.class, living(new ModelGolem(), 1.0F, "EarthGolem", 1F));
         RenderingRegistry.registerEntityRenderingHandler(WaterGolem.class, living(new ModelGolem(), 1.0F, "WaterGolem", 1F));

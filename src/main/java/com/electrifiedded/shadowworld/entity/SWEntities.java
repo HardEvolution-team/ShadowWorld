@@ -22,6 +22,11 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.BossInfo;
 import net.minecraft.world.BossInfoServer;
 import net.minecraft.world.World;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.datasync.DataParameter;
+import net.minecraft.network.datasync.DataSerializers;
+import net.minecraft.network.datasync.EntityDataManager;
+import net.minecraft.util.math.MathHelper;
 
 import javax.annotation.Nullable;
 
@@ -39,68 +44,240 @@ public final class SWEntities {
 
     // ------------------------------------------------------------------ monsters
 
-    public static class Shadow extends EntityEnderman {
-        public Shadow(World w) { super(w); }
-        @Override protected void initEntityAI() {
-            super.initEntityAI();
-            targetTasks.addTask(3, new EntityAINearestAttackableTarget<>(this, Light.class, false));
+    static <T> DataParameter<T> key(Class<? extends Entity> c, net.minecraft.network.datasync.DataSerializer<T> s) { return EntityDataManager.createKey(c, s); }
+
+    static void shadowParticles(EntityLivingBase e, int n) {
+        for (int i = 0; i < n; i++) {
+            float f = e.getRNG().nextFloat() * (float) Math.PI * 2.0F;
+            float f1 = e.getRNG().nextFloat() * 0.5F + 0.5F;
+            float f2 = MathHelper.sin(f) * i * 0.5F * f1;
+            float f3 = MathHelper.cos(f) * i * 0.5F * f1;
+            com.electrifiedded.shadowworld.ShadowWorld.proxy.spawnParticle("Shadow", e.posX + f2, e.getEntityBoundingBox().minY, e.posZ + f3, 0, 0, 0);
         }
+    }
+
+    /** 1.7 EntityShadow: an Enderman (old AI: stare/teleport/carry) drawn as a dark zombie with glowing eyes. */
+    public static class Shadow extends EntityEnderman {
+        public Shadow(World w) { super(w); experienceValue = 20; }
         @Override protected void applyEntityAttributes() {
             super.applyEntityAttributes();
+            getEntityAttribute(SharedMonsterAttributes.FOLLOW_RANGE).setBaseValue(40.0);
+            getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.3);
             getEntityAttribute(SharedMonsterAttributes.ATTACK_DAMAGE).setBaseValue(4.0);
             getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(10.0);
-            getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.3);
         }
-        @Override protected void dropFewItems(boolean hit, int looting) { drops(this, hit, looting, SWContent.Shadow); }
+        @Override public EnumCreatureAttribute getCreatureAttribute() { return EnumCreatureAttribute.UNDEAD; }
+        @Nullable @Override public IEntityLivingData onInitialSpawn(net.minecraft.world.DifficultyInstance d, @Nullable IEntityLivingData data) { return data; }
+        @Override protected Item getDropItem() { return SWContent.Shadow; }
+        @Override protected void dropFewItems(boolean hit, int looting) {
+            if (hit) { entityDropItem(new ItemStack(SWContent.Soul), 0F); entityDropItem(new ItemStack(SWContent.Shadow), 0F); }
+        }
+        @Override protected SoundEvent getAmbientSound() { return null; }
+        @Override protected SoundEvent getHurtSound(DamageSource d) { return SoundEvents.ENTITY_ZOMBIE_HURT; }
+        @Override protected SoundEvent getDeathSound() { return SoundEvents.ENTITY_ZOMBIE_DEATH; }
+        @Override protected void playStepSound(BlockPos p, net.minecraft.block.Block b) {}
+        @Override protected float getSoundPitch() { return super.getSoundPitch() * -5.0F; }
+        @Override public void onLivingUpdate() {
+            if (world.isRemote) for (int i = 0; i < 2; i++) {
+                world.spawnParticle(EnumParticleTypes.PORTAL, posX + (rand.nextDouble() - 0.5) * width, posY + rand.nextDouble() * height - 0.25,
+                        posZ + (rand.nextDouble() - 0.5) * width, (rand.nextDouble() - 0.5) * 2.0, -rand.nextDouble(), (rand.nextDouble() - 0.5) * 2.0);
+                float f = rand.nextFloat() * (float) Math.PI * 2.0F, f1 = rand.nextFloat() * 0.5F + 0.5F;
+                com.electrifiedded.shadowworld.ShadowWorld.proxy.spawnParticle("Shadow", posX + MathHelper.sin(f) * i * 0.5F * f1, getEntityBoundingBox().minY, posZ + MathHelper.cos(f) * i * 0.5F * f1, 0, 0, 0);
+            }
+            super.onLivingUpdate();
+        }
         @Override public boolean getCanSpawnHere() { return world.getDifficulty() != net.minecraft.world.EnumDifficulty.PEACEFUL; }
     }
 
     public static class SkeletonSpider extends EntitySpider {
-        public SkeletonSpider(World w) { super(w); setSize(1.3F, 1.3F); }
+        public SkeletonSpider(World w) { super(w); setSize(1.3F, 1.3F); experienceValue = 10; }
         @Override protected void applyEntityAttributes() {
             super.applyEntityAttributes();
-            getEntityAttribute(SharedMonsterAttributes.ATTACK_DAMAGE).setBaseValue(3.5);
+            getEntityAttribute(SharedMonsterAttributes.FOLLOW_RANGE).setBaseValue(40.0);
             getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(15.0);
             getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.2);
+            getEntityAttribute(SharedMonsterAttributes.ATTACK_DAMAGE).setBaseValue(3.5);
         }
         @Override public boolean attackEntityAsMob(Entity e) {
-            boolean b = super.attackEntityAsMob(e);
-            if (b && e instanceof EntityLivingBase l) l.addPotionEffect(new PotionEffect(MobEffects.BLINDNESS, 300, 0));
-            return b;
+            if (!super.attackEntityAsMob(e)) return false;
+            if (e instanceof EntityLivingBase l) l.addPotionEffect(new PotionEffect(MobEffects.BLINDNESS, 300, 0));
+            return true;
         }
-        @Override protected void dropFewItems(boolean hit, int looting) { drops(this, hit, looting, Items.BONE, Items.STRING); }
+        @Nullable @Override public IEntityLivingData onInitialSpawn(net.minecraft.world.DifficultyInstance d, @Nullable IEntityLivingData data) { return data; }
+        @Override protected Item getDropItem() { return Items.BONE; }
+        @Override protected void dropFewItems(boolean hit, int looting) {
+            super.dropFewItems(hit, looting);
+            if (hit) { entityDropItem(new ItemStack(SWContent.Soul), 0F); entityDropItem(new ItemStack(Items.BONE), 0F); }
+            if (hit && (rand.nextInt(3) == 0 || rand.nextInt(1 + looting) > 0)) entityDropItem(new ItemStack(Items.STRING, 2), 0F);
+        }
+        @Override protected net.minecraft.util.ResourceLocation getLootTable() { return null; }
+        @Override protected SoundEvent getHurtSound(DamageSource d) { return SoundEvents.ENTITY_SKELETON_HURT; }
+        @Override protected void playStepSound(BlockPos p, net.minecraft.block.Block b) { playSound(SoundEvents.ENTITY_SKELETON_STEP, 0.15F, -1.0F); }
+        @Override protected float getSoundPitch() { return super.getSoundPitch() * -1.0F; }
         @Override public boolean getCanSpawnHere() { return true; }
     }
 
     public static class WolfSpider extends EntitySpider {
-        public WolfSpider(World w) { super(w); setSize(0.75F, 0.75F); }
+        public WolfSpider(World w) { super(w); experienceValue = 100; setSize(0.75F, 0.75F); ((net.minecraft.pathfinding.PathNavigateGround) getNavigator()).setBreakDoors(true); }
+        @Override protected void initEntityAI() {
+            tasks.addTask(0, new EntityAISwimming(this));
+            tasks.addTask(1, new EntityAIBreakDoor(this));
+            tasks.addTask(4, new EntityAIAttackMelee(this, 1.0, false));
+            tasks.addTask(4, new EntityAIMoveTowardsRestriction(this, 1.0));
+            tasks.addTask(5, new EntityAIMoveThroughVillage(this, 0.5, false));
+            tasks.addTask(6, new EntityAIWander(this, 0.5));
+            tasks.addTask(7, new EntityAIWatchClosest(this, EntityPlayer.class, 8.0F));
+            tasks.addTask(7, new EntityAILookIdle(this));
+            targetTasks.addTask(1, new EntityAIHurtByTarget(this, true));
+            targetTasks.addTask(2, new EntityAINearestAttackableTarget<>(this, EntityPlayer.class, true));
+            targetTasks.addTask(2, new EntityAINearestAttackableTarget<>(this, EntityVillager.class, false));
+        }
         @Override protected void applyEntityAttributes() {
             super.applyEntityAttributes();
-            getEntityAttribute(SharedMonsterAttributes.ATTACK_DAMAGE).setBaseValue(10.0);
+            getEntityAttribute(SharedMonsterAttributes.FOLLOW_RANGE).setBaseValue(40.0);
             getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(20.0);
             getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.4);
+            getEntityAttribute(SharedMonsterAttributes.ATTACK_DAMAGE).setBaseValue(10.0);
         }
-        @Override protected void dropFewItems(boolean hit, int looting) { drops(this, hit, looting, Items.STRING); }
+        @Nullable @Override public IEntityLivingData onInitialSpawn(net.minecraft.world.DifficultyInstance d, @Nullable IEntityLivingData data) { return data; }
+        @Override protected net.minecraft.util.ResourceLocation getLootTable() { return null; }
+        @Override protected Item getDropItem() { return Items.STRING; }
+        @Override protected void dropFewItems(boolean hit, int looting) {
+            super.dropFewItems(hit, looting);
+            if (hit) entityDropItem(new ItemStack(SWContent.Soul), 0F);
+        }
+        @Override protected SoundEvent getAmbientSound() { return SoundEvents.ENTITY_WOLF_HOWL; }
+        @Override protected float getSoundVolume() { return 1.4F; }
+        @Override protected float getSoundPitch() { return super.getSoundPitch() - rand.nextFloat(); }
         @Override public boolean getCanSpawnHere() { return true; }
     }
 
-    public static class ShadowCreeper extends EntityCreeper {
-        public ShadowCreeper(World w) { super(w); }
-        @Override protected void dropFewItems(boolean hit, int looting) { drops(this, hit, looting, Items.GUNPOWDER); }
+    /** 1.7 EntityShadowCreeper / EntityExplodingWolf: own fuse logic (30/44 swell range, flint ignition, no melee damage). */
+    public abstract static class FuseMob extends EntityMob {
+        private static final DataParameter<Integer> STATE = key(FuseMob.class, DataSerializers.VARINT);
+        private static final DataParameter<Boolean> IGNITED = key(FuseMob.class, DataSerializers.BOOLEAN);
+        private int lastActiveTime, timeSinceIgnited, fuseTime = 20;
+        protected int explosionRadius;
+        protected FuseMob(World w, int radius) { super(w); explosionRadius = radius; }
+        @Override protected void initEntityAI() {
+            tasks.addTask(1, new EntityAISwimming(this));
+            tasks.addTask(2, new Swell(this));
+            tasks.addTask(4, new EntityAIAttackMelee(this, 1.0, false));
+            tasks.addTask(5, new EntityAIWander(this, 0.8));
+            tasks.addTask(6, new EntityAIWatchClosest(this, EntityPlayer.class, 8.0F));
+            tasks.addTask(6, new EntityAILookIdle(this));
+            targetTasks.addTask(1, new EntityAINearestAttackableTarget<>(this, EntityPlayer.class, true));
+            targetTasks.addTask(2, new EntityAIHurtByTarget(this, false));
+        }
+        @Override protected void entityInit() { super.entityInit(); dataManager.register(STATE, -1); dataManager.register(IGNITED, false); }
+        public int getFuseState() { return dataManager.get(STATE); }
+        public void setFuseState(int s) { dataManager.set(STATE, s); }
+        public boolean isIgnited() { return dataManager.get(IGNITED); }
+        public void ignite() { dataManager.set(IGNITED, true); }
+        public float getFlashIntensity(float pt) { return (lastActiveTime + (timeSinceIgnited - lastActiveTime) * pt) / (fuseTime - 2); }
+        @Override public int getMaxFallHeight() { return getAttackTarget() == null ? 3 : 3 + (int) (getHealth() - 1.0F); }
+        @Override public void fall(float d, float m) {
+            super.fall(d, m);
+            timeSinceIgnited = (int) (timeSinceIgnited + d * 1.5F);
+            if (timeSinceIgnited > fuseTime - 5) timeSinceIgnited = fuseTime - 5;
+        }
+        @Override public void writeEntityToNBT(NBTTagCompound t) {
+            super.writeEntityToNBT(t);
+            t.setShort("Fuse", (short) fuseTime); t.setByte("ExplosionRadius", (byte) explosionRadius); t.setBoolean("ignited", isIgnited());
+        }
+        @Override public void readEntityFromNBT(NBTTagCompound t) {
+            super.readEntityFromNBT(t);
+            if (t.hasKey("Fuse", 99)) fuseTime = t.getShort("Fuse");
+            if (t.hasKey("ExplosionRadius", 99)) explosionRadius = t.getByte("ExplosionRadius");
+            if (t.getBoolean("ignited")) ignite();
+        }
+        protected void onPrimed() { playSound(SoundEvents.ENTITY_CREEPER_PRIMED, 10.0F, 0.5F); }
+        protected void whileFused() {}
+        protected void explode() { world.createExplosion(this, posX, posY, posZ, explosionRadius, net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(world, this)); }
+        protected int fuse() { return timeSinceIgnited; }
+        @Override public void onUpdate() {
+            if (isEntityAlive()) {
+                lastActiveTime = timeSinceIgnited;
+                if (isIgnited()) setFuseState(1);
+                int i = getFuseState();
+                if (i > 0 && timeSinceIgnited == 0) onPrimed();
+                timeSinceIgnited += i;
+                if (timeSinceIgnited < 0) timeSinceIgnited = 0;
+                else if (timeSinceIgnited != 0) whileFused();
+                if (timeSinceIgnited >= fuseTime) {
+                    timeSinceIgnited = fuseTime;
+                    if (!world.isRemote) { explode(); setDead(); }
+                }
+            }
+            super.onUpdate();
+        }
+        @Override public boolean attackEntityAsMob(Entity e) { return true; }
+        @Override protected Item getDropItem() { return Items.GUNPOWDER; }
+        @Override protected net.minecraft.util.ResourceLocation getLootTable() { return null; }
+        @Override protected boolean processInteract(EntityPlayer p, EnumHand h) {
+            ItemStack s = p.getHeldItem(h);
+            if (s.getItem() == Items.FLINT_AND_STEEL) {
+                world.playSound(p, posX, posY, posZ, SoundEvents.ITEM_FLINTANDSTEEL_USE, getSoundCategory(), 1.0F, rand.nextFloat() * 0.4F + 0.8F);
+                p.swingArm(h);
+                if (!world.isRemote) { ignite(); s.damageItem(1, p); return true; }
+            }
+            return super.processInteract(p, h);
+        }
         @Override public boolean getCanSpawnHere() { return true; }
+
+        static class Swell extends EntityAIBase {
+            final FuseMob m; EntityLivingBase target;
+            Swell(FuseMob m) { this.m = m; setMutexBits(1); }
+            @Override public boolean shouldExecute() {
+                EntityLivingBase t = m.getAttackTarget();
+                return m.getFuseState() > 0 || t != null && m.getDistanceSq(t) < 30.0;
+            }
+            @Override public void startExecuting() { m.getNavigator().clearPath(); target = m.getAttackTarget(); }
+            @Override public void resetTask() { target = null; }
+            @Override public void updateTask() {
+                if (target == null || m.getDistanceSq(target) > 44.0 || !m.getEntitySenses().canSee(target)) m.setFuseState(-1);
+                else m.setFuseState(1);
+            }
+        }
     }
 
-    /** Creeper-like wolf that explodes next to players. */
-    public static class ExplodingWolf extends EntityCreeper {
-        public ExplodingWolf(World w) { super(w); setSize(0.6F, 0.85F); }
-        @Override protected void applyEntityAttributes() {
-            super.applyEntityAttributes();
-            getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.3);
+    /** Radius-7 creeper that sucks everything in while it swells and also hunts dwarves. */
+    public static class ShadowCreeper extends FuseMob {
+        public ShadowCreeper(World w) { super(w, 7); }
+        @Override protected void initEntityAI() {
+            super.initEntityAI();
+            tasks.addTask(3, new EntityAIAvoidEntity<>(this, EntityOcelot.class, 6.0F, 1.0, 1.2));
+            targetTasks.addTask(1, new EntityAINearestAttackableTarget<>(this, SWDwarves.Dwarf.class, true));
         }
-        @Override protected SoundEvent getAmbientSound() { return SoundEvents.ENTITY_WOLF_GROWL; }
-        @Override protected SoundEvent getHurtSound(DamageSource d) { return SoundEvents.ENTITY_WOLF_HURT; }
-        @Override protected SoundEvent getDeathSound() { return SoundEvents.ENTITY_WOLF_DEATH; }
-        @Override public boolean getCanSpawnHere() { return true; }
+        @Override protected void applyEntityAttributes() { super.applyEntityAttributes(); getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.25); }
+        @Override protected void onPrimed() { super.onPrimed(); playSound(SoundEvents.ENTITY_WITHER_AMBIENT, 10.0F, 0.5F); }
+        @Override protected void whileFused() {
+            double r = explosionRadius * 2.0 + 1.0;
+            net.minecraft.util.math.AxisAlignedBB bb = new net.minecraft.util.math.AxisAlignedBB(
+                    MathHelper.floor(posX - r), MathHelper.floor(posY - r), MathHelper.floor(posZ - r),
+                    MathHelper.floor(posX + r), MathHelper.floor(posY + r), MathHelper.floor(posZ + r));
+            int div = 70 / fuse();
+            for (Entity e : world.getEntitiesWithinAABBExcludingEntity(this, bb)) {
+                e.motionX -= (e.posX - posX) / div;
+                e.motionY -= (e.posY - posY) / div;
+                e.motionZ -= (e.posZ - posZ) / div;
+            }
+        }
+        @Override protected SoundEvent getHurtSound(DamageSource d) { return SoundEvents.ENTITY_CREEPER_HURT; }
+        @Override protected SoundEvent getDeathSound() { return SoundEvents.ENTITY_CREEPER_DEATH; }
+    }
+
+    /** Wolf-shaped creeper: radius 8 blast followed by a radius 4 one. */
+    public static class ExplodingWolf extends FuseMob {
+        public ExplodingWolf(World w) { super(w, 8); }
+        @Override protected void applyEntityAttributes() { super.applyEntityAttributes(); getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.3); }
+        @Override protected void explode() {
+            boolean g = net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(world, this);
+            world.createExplosion(this, posX, posY, posZ, explosionRadius, g);
+            world.createExplosion(this, posX, posY, posZ, explosionRadius / 2.0F, g);
+        }
+        @Override protected SoundEvent getHurtSound(DamageSource d) { return SoundEvents.ENTITY_WOLF_GROWL; }
+        @Override protected SoundEvent getDeathSound() { return SoundEvents.ENTITY_CREEPER_DEATH; }
     }
 
     public static class ShadowChicken extends EntityMob {
@@ -137,83 +314,296 @@ public final class SWEntities {
         @Override protected void dropFewItems(boolean hit, int looting) { drops(this, hit, looting, SWContent.BlackFeather, isBurning() ? Items.COOKED_CHICKEN : Items.CHICKEN); }
     }
 
+    /** Grows when killed (children size..size+2 while below 6); hits for size-3, drops Shadows when big. */
     public static class ShadowSlime extends EntitySlime {
         public ShadowSlime(World w) { super(w); }
         @Override protected EntitySlime createInstance() { return new ShadowSlime(world); }
-        @Override public boolean getCanSpawnHere() { return true; }
-        @Override protected Item getDropItem() { return getSlimeSize() == 1 ? SWContent.GlowingInkSac : null; }
-        @Override protected EnumParticleTypes getParticleType() { return EnumParticleTypes.SPELL_MOB; }
+        @Override public void setDead() {
+            int i = getSlimeSize();
+            if (!world.isRemote && !isDead && i < 6 && getHealth() <= 0.0F && !isInWater()) {
+                int j = rand.nextInt(3) + 1;
+                for (int k = 0; k < j; k++) {
+                    float f = (k % 2 - 0.5F) * i / 4.0F, f1 = (k / 2 - 0.5F) * i / 4.0F;
+                    ShadowSlime s = new ShadowSlime(world);
+                    s.setSlimeSize(i + rand.nextInt(3), true);
+                    s.setLocationAndAngles(posX + f, posY + 0.5, posZ + f1, rand.nextFloat() * 360.0F, 0.0F);
+                    world.spawnEntity(s);
+                }
+            }
+            if (!world.isRemote && getSlimeSize() > 1) setSlimeSize(1, false); // skip EntitySlime's own split
+            super.setDead();
+        }
+        @Override protected boolean canDamagePlayer() { return true; }
+        @Override protected int getAttackStrength() { return getSlimeSize() - 3; }
+        @Override protected void dealDamage(EntityLivingBase e) { if (getAttackStrength() > 0) super.dealDamage(e); }
+        @Override protected Item getDropItem() { return getSlimeSize() > 4 ? SWContent.Shadow : null; }
+        @Override protected net.minecraft.util.ResourceLocation getLootTable() { return null; }
+        @Override protected EnumParticleTypes getParticleType() { return EnumParticleTypes.SMOKE_NORMAL; }
+        @Override public int getBrightnessForRender() { return 99; }
+        @Override public int getMaxSpawnedInChunk() { return 1; }
+        @Override protected float getSoundPitch() { return super.getSoundPitch() * -2.0F; }
+        @Override public boolean getCanSpawnHere() { return world.getDifficulty() != net.minecraft.world.EnumDifficulty.PEACEFUL; }
     }
 
+    /** Harmless: touching it gives regeneration and hearts; splits into 3-5 smaller slimes, small ones drop golden cookies. */
     public static class CookieSlime extends EntitySlime {
         public CookieSlime(World w) { super(w); }
         @Override protected EntitySlime createInstance() { return new CookieSlime(world); }
+        @Override public void setDead() {
+            int i = getSlimeSize();
+            if (!world.isRemote && !isDead && i > 1 && getHealth() <= 0.0F && !isInWater()) {
+                int j = rand.nextInt(3) + 3;
+                for (int k = 0; k < j; k++) {
+                    float f = (k % 2 - 0.5F) * i / 4.0F, f1 = (k / 2 - 0.5F) * i / 4.0F;
+                    CookieSlime s = new CookieSlime(world);
+                    s.setSlimeSize(Math.max(1, i - rand.nextInt(3) - 1), true);
+                    s.setLocationAndAngles(posX + f, posY + 0.5, posZ + f1, rand.nextFloat() * 360.0F, 0.0F);
+                    world.spawnEntity(s);
+                }
+            }
+            if (!world.isRemote && getSlimeSize() > 1) setSlimeSize(1, false);
+            super.setDead();
+        }
+        @Override protected boolean canDamagePlayer() { return false; }
+        @Override public void onCollideWithPlayer(EntityPlayer p) {
+            int i = getSlimeSize();
+            if (world instanceof net.minecraft.world.WorldServer ws) for (int j = 0; j < i * 8; j++) {
+                float f = rand.nextFloat() * (float) Math.PI * 2.0F, f1 = rand.nextFloat() * 0.5F + 0.5F;
+                ws.spawnParticle(EnumParticleTypes.HEART, posX + MathHelper.sin(f) * i * 0.5F * f1, getEntityBoundingBox().maxY, posZ + MathHelper.cos(f) * i * 0.5F * f1, 1, 0, 0, 0, 0.0);
+            }
+            p.addPotionEffect(new PotionEffect(MobEffects.REGENERATION, 5));
+        }
+        @Override protected Item getDropItem() { return getSlimeSize() < 4 ? SWContent.GoldenCookie : null; }
+        @Override protected net.minecraft.util.ResourceLocation getLootTable() { return null; }
+        @Override protected EnumParticleTypes getParticleType() { return EnumParticleTypes.SMOKE_NORMAL; }
+        @Override public int getMaxSpawnedInChunk() { return 3; }
+        @Override protected float getSoundPitch() { return super.getSoundPitch() * 5.0F; }
         @Override public boolean getCanSpawnHere() { return true; }
-        @Override protected Item getDropItem() { return Items.COOKIE; }
-        @Override protected boolean spawnCustomParticles() { return true; }
     }
 
     // ------------------------------------------------------------------ animals
 
-    public static class ShadowPig extends EntityPig {
-        public ShadowPig(World w) { super(w); }
-        @Override protected void applyEntityAttributes() { super.applyEntityAttributes(); getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(10.0); }
-        @Override public ShadowPig createChild(EntityAgeable a) { return new ShadowPig(world); }
-        @Override protected void dropFewItems(boolean hit, int looting) {
-            drops(this, hit, looting, SWContent.Shadow);
-            if (getSaddled()) dropItem(Items.SADDLE, 1);
-        }
-        @Override public boolean getCanSpawnHere() { return true; }
-    }
-
-    public static class CookiePig extends EntityPig {
-        public CookiePig(World w) { super(w); }
-        @Override protected void initEntityAI() {
-            super.initEntityAI();
-            tasks.addTask(4, new EntityAITempt(this, 1.2, SWContent.WhiteChocolate, false));
-        }
-        @Override public boolean isBreedingItem(ItemStack s) { return s.getItem() == SWContent.WhiteChocolate; }
-        @Override public CookiePig createChild(EntityAgeable a) { return new CookiePig(world); }
-        @Override protected void dropFewItems(boolean hit, int looting) { for (int i = 0; i < 1 + rand.nextInt(3 + looting); i++) dropItem(Items.COOKIE, 1); }
-        @Override public boolean getCanSpawnHere() { return true; }
-    }
-
-    /** Peaceful spider. */
-    public static class PassiveSpider extends EntityAnimal {
-        public PassiveSpider(World w) { super(w); setSize(1.4F, 0.9F); }
+    /** Saddle it and it flies: forward = up, back = down, with wither sounds. */
+    public static class ShadowPig extends EntityAnimal {
+        private static final DataParameter<Boolean> SADDLED = key(ShadowPig.class, DataSerializers.BOOLEAN);
+        public ShadowPig(World w) { super(w); setSize(0.9F, 0.9F); }
         @Override protected void initEntityAI() {
             tasks.addTask(0, new EntityAISwimming(this));
             tasks.addTask(1, new EntityAIPanic(this, 1.25));
-            tasks.addTask(2, new EntityAIMate(this, 1.0));
-            tasks.addTask(5, new EntityAIWander(this, 1.0));
-            tasks.addTask(6, new EntityAIWatchClosest(this, EntityPlayer.class, 6.0F));
-            tasks.addTask(7, new EntityAILookIdle(this));
+            tasks.addTask(3, new EntityAIMate(this, 1.0));
+            tasks.addTask(4, new EntityAITempt(this, 1.2, Items.CARROT_ON_A_STICK, false));
+            tasks.addTask(4, new EntityAITempt(this, 1.2, Items.CARROT, false));
+            tasks.addTask(5, new EntityAIFollowParent(this, 1.1));
+            tasks.addTask(6, new EntityAIWander(this, 1.0));
+            tasks.addTask(7, new EntityAIWatchClosest(this, EntityPlayer.class, 6.0F));
+            tasks.addTask(8, new EntityAILookIdle(this));
         }
         @Override protected void applyEntityAttributes() {
             super.applyEntityAttributes();
-            getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(12.0);
-            getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.3);
+            getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(10.0);
+            getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.25);
         }
-        @Override public boolean isBreedingItem(ItemStack s) { return s.getItem() == Items.SPIDER_EYE; }
-        @Override public PassiveSpider createChild(EntityAgeable a) { return new PassiveSpider(world); }
-        @Override protected SoundEvent getAmbientSound() { return SoundEvents.ENTITY_SPIDER_AMBIENT; }
-        @Override protected SoundEvent getHurtSound(DamageSource d) { return SoundEvents.ENTITY_SPIDER_HURT; }
-        @Override protected SoundEvent getDeathSound() { return SoundEvents.ENTITY_SPIDER_DEATH; }
-        @Override protected Item getDropItem() { return Items.STRING; }
+        @Override protected void entityInit() { super.entityInit(); dataManager.register(SADDLED, false); }
+        public boolean getSaddled() { return dataManager.get(SADDLED); }
+        public void setSaddled(boolean b) { dataManager.set(SADDLED, b); }
+        @Override public void writeEntityToNBT(NBTTagCompound t) { super.writeEntityToNBT(t); t.setBoolean("Saddle", getSaddled()); }
+        @Override public void readEntityFromNBT(NBTTagCompound t) { super.readEntityFromNBT(t); setSaddled(t.getBoolean("Saddle")); }
+        @Override protected SoundEvent getAmbientSound() { return SoundEvents.ENTITY_PIG_AMBIENT; }
+        @Override protected SoundEvent getHurtSound(DamageSource d) { return SoundEvents.ENTITY_PIG_AMBIENT; }
+        @Override protected SoundEvent getDeathSound() { return SoundEvents.ENTITY_PIG_DEATH; }
+        @Override protected void playStepSound(BlockPos p, net.minecraft.block.Block b) { playSound(SoundEvents.ENTITY_PIG_STEP, 0.15F, 1.0F); }
+        @Override protected float getSoundPitch() { return super.getSoundPitch() * -1.0F; }
+        @Override public boolean processInteract(EntityPlayer p, EnumHand h) {
+            if (super.processInteract(p, h)) return true;
+            ItemStack s = p.getHeldItem(h);
+            if (!getSaddled() && s.getItem() == Items.SADDLE) {
+                if (!world.isRemote) { setSaddled(true); if (!p.capabilities.isCreativeMode) s.shrink(1); }
+                return true;
+            }
+            if (!getSaddled() || h != EnumHand.MAIN_HAND || isBeingRidden() && !isPassenger(p)) return false;
+            if (!world.isRemote) p.startRiding(this);
+            return true;
+        }
+        @Override protected Item getDropItem() { return SWContent.Shadow; }
+        @Override protected net.minecraft.util.ResourceLocation getLootTable() { return null; }
+        @Override protected void dropFewItems(boolean hit, int looting) {
+            int j = rand.nextInt(3) + 1 + rand.nextInt(1 + looting);
+            for (int k = 0; k < j; k++) entityDropItem(new ItemStack(SWContent.Shadow), 0F);
+            entityDropItem(new ItemStack(SWContent.Soul), 0F);
+            if (getSaddled()) entityDropItem(new ItemStack(Items.SADDLE), 0F);
+        }
+        @Override public ShadowPig createChild(EntityAgeable a) { return new ShadowPig(world); }
+        @Override public boolean isBreedingItem(ItemStack s) { return s.getItem() == Items.CARROT; }
+        @Override public void onLivingUpdate() { if (world.isRemote) shadowParticles(this, 2); super.onLivingUpdate(); }
+        @Override public boolean canBePushed() { return !isBeingRidden(); }
+        @Override public boolean attackEntityFrom(DamageSource src, float a) {
+            return isBeingRidden() && src.getTrueSource() != null && isPassenger(src.getTrueSource()) ? false : super.attackEntityFrom(src, a);
+        }
+        @Nullable @Override public Entity getControllingPassenger() { return getPassengers().isEmpty() ? null : getPassengers().get(0); }
+        @Override public boolean canBeSteered() { return getControllingPassenger() instanceof EntityLivingBase; }
+        @Override public void travel(float strafe, float vertical, float forward) {
+            Entity r = getControllingPassenger();
+            if (r instanceof EntityLivingBase l && getSaddled()) {
+                prevRotationYaw = rotationYaw = r.rotationYaw;
+                rotationPitch = r.rotationPitch * 0.5F;
+                setRotation(rotationYaw, rotationPitch);
+                rotationYawHead = renderYawOffset = rotationYaw;
+                strafe = l.moveStrafing * 0.5F;
+                forward = l.moveForward * 2.0F;
+                if (forward > 0.0F) {
+                    motionY = 0.1;
+                    if (rand.nextInt(4) == 0) playSound(SoundEvents.ENTITY_WITHER_DEATH, 1.0F, getSoundPitch());
+                } else if (forward < 0.0F) {
+                    motionY = -0.1;
+                    if (!onGround) playSound(SoundEvents.ENTITY_WITHER_AMBIENT, 1.0F, getSoundPitch());
+                    forward *= -1.0F;
+                }
+                if (forward == 0.0F) motionY = 0.0;
+                stepHeight = 1.0F;
+                if (canPassengerSteer()) {
+                    setAIMoveSpeed((float) getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).getAttributeValue() / 1.25F);
+                    super.travel(strafe, vertical, forward);
+                } else { motionX = 0; motionY = 0; motionZ = 0; }
+                prevLimbSwingAmount = limbSwingAmount;
+                double d0 = posX - prevPosX, d1 = posZ - prevPosZ;
+                float f4 = Math.min(1.0F, MathHelper.sqrt(d0 * d0 + d1 * d1) * 4.0F);
+                limbSwingAmount += (f4 - limbSwingAmount) * 0.4F;
+                limbSwing += limbSwingAmount;
+            } else {
+                stepHeight = 0.5F;
+                super.travel(strafe, vertical, forward);
+            }
+        }
+        @Override public boolean isOnLadder() { return false; }
+        @Override public void fall(float d, float m) { if (!isBeingRidden()) super.fall(d, m); }
         @Override public boolean getCanSpawnHere() { return true; }
     }
 
-    /** Shadow wolf: tamed with souls, golden souls always tame. */
+    /** Right-click to take a bite (feeds you); five bites and it is gone. */
+    public static class CookiePig extends EntityAnimal {
+        private static final DataParameter<Integer> EATEN = key(CookiePig.class, DataSerializers.VARINT);
+        private int eatstat = 5;
+        public CookiePig(World w) { super(w); setSize(0.9F, 0.9F); }
+        @Override protected void initEntityAI() {
+            tasks.addTask(0, new EntityAISwimming(this));
+            tasks.addTask(1, new EntityAIPanic(this, 1.25));
+            tasks.addTask(3, new EntityAIMate(this, 1.0));
+            tasks.addTask(4, new EntityAITempt(this, 1.2, SWContent.WhiteChocolate, false));
+            tasks.addTask(5, new EntityAIFollowParent(this, 1.1));
+            tasks.addTask(6, new EntityAIWander(this, 1.0));
+            tasks.addTask(7, new EntityAIWatchClosest(this, EntityPlayer.class, 6.0F));
+            tasks.addTask(8, new EntityAILookIdle(this));
+        }
+        @Override protected void applyEntityAttributes() {
+            super.applyEntityAttributes();
+            getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(10.0);
+            getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.25);
+        }
+        @Override protected void entityInit() { super.entityInit(); dataManager.register(EATEN, 5); }
+        public int getEaten() { return dataManager.get(EATEN); }
+        public void setEaten(int i) { dataManager.set(EATEN, i <= 0 ? 5 : eatstat); }
+        @Override public void writeEntityToNBT(NBTTagCompound t) { super.writeEntityToNBT(t); t.setInteger("Eating", getEaten()); }
+        @Override public void readEntityFromNBT(NBTTagCompound t) {
+            super.readEntityFromNBT(t);
+            eatstat = t.hasKey("Eating") ? Math.max(1, t.getInteger("Eating")) : 5;
+            setEaten(eatstat);
+            if (eatstat <= 2) getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.0);
+        }
+        @Override protected SoundEvent getAmbientSound() { return SoundEvents.ENTITY_PIG_AMBIENT; }
+        @Override protected SoundEvent getHurtSound(DamageSource d) { return SoundEvents.ENTITY_PIG_AMBIENT; }
+        @Override protected SoundEvent getDeathSound() { return SoundEvents.ENTITY_PIG_DEATH; }
+        @Override protected void playStepSound(BlockPos p, net.minecraft.block.Block b) { playSound(SoundEvents.ENTITY_PIG_STEP, 0.15F, 1.0F); }
+        @Override public boolean processInteract(EntityPlayer p, EnumHand h) {
+            if (super.processInteract(p, h)) return true;
+            if (h != EnumHand.MAIN_HAND || isBeingRidden()) return false;
+            if (!world.isRemote) {
+                eatstat--;
+                world.setEntityState(this, (byte) 7);
+                p.getFoodStats().addStats(1, 0.001F);
+                playSound(SoundEvents.ENTITY_GENERIC_EAT, 0.5F + 0.5F * rand.nextInt(2), (rand.nextFloat() - rand.nextFloat()) * 0.2F + 1.0F);
+                setEaten(eatstat);
+                if (eatstat <= 0) {
+                    attackEntityFrom(DamageSource.GENERIC, 30.0F);
+                    playSound(SoundEvents.ENTITY_PLAYER_BURP, 0.5F, rand.nextFloat() * 0.1F + 0.9F);
+                    eatstat = 5;
+                }
+                if (eatstat <= 2) getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.0);
+            }
+            return true;
+        }
+        @Override protected net.minecraft.util.ResourceLocation getLootTable() { return null; }
+        @Override protected void dropFewItems(boolean hit, int looting) {
+            int j = rand.nextInt(3) + 1 + rand.nextInt(1 + looting);
+            for (int k = 0; k < j; k++) entityDropItem(new ItemStack(Items.COOKIE), 0F);
+        }
+        @Override public boolean isBreedingItem(ItemStack s) { return s.getItem() == SWContent.WhiteChocolate; }
+        @Override public CookiePig createChild(EntityAgeable a) { return new CookiePig(world); }
+        @Override public boolean getCanSpawnHere() { return true; }
+    }
+
+    /** Small, harmless climbing spider. */
+    public static class PassiveSpider extends EntityAnimal {
+        private static final DataParameter<Byte> CLIMBING = key(PassiveSpider.class, DataSerializers.BYTE);
+        public PassiveSpider(World w) { super(w); setSize(0.5F, 0.5F); }
+        @Override protected void initEntityAI() {
+            tasks.addTask(0, new EntityAISwimming(this));
+            tasks.addTask(1, new EntityAIPanic(this, 1.25));
+            tasks.addTask(5, new EntityAIFollowParent(this, 1.1));
+            tasks.addTask(6, new EntityAIWander(this, 1.0));
+            tasks.addTask(7, new EntityAIWatchClosest(this, EntityPlayer.class, 6.0F));
+            tasks.addTask(8, new EntityAILookIdle(this));
+        }
+        @Override protected net.minecraft.pathfinding.PathNavigate createNavigator(World w) { return new net.minecraft.pathfinding.PathNavigateClimber(this, w); }
+        @Override protected void entityInit() { super.entityInit(); dataManager.register(CLIMBING, (byte) 0); }
+        @Override public void onUpdate() { super.onUpdate(); if (!world.isRemote) dataManager.set(CLIMBING, (byte) (collidedHorizontally ? 1 : 0)); }
+        @Override public boolean isOnLadder() { return dataManager.get(CLIMBING) != 0; }
+        @Override public void setInWeb() {}
+        @Override public boolean isPotionApplicable(PotionEffect e) { return e.getPotion() != MobEffects.POISON && super.isPotionApplicable(e); }
+        @Override protected void applyEntityAttributes() {
+            super.applyEntityAttributes();
+            getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(8.0);
+            getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.2);
+        }
+        @Nullable @Override public IEntityLivingData onInitialSpawn(net.minecraft.world.DifficultyInstance d, @Nullable IEntityLivingData data) { return data; }
+        @Override protected Item getDropItem() { return Items.STRING; }
+        @Override protected net.minecraft.util.ResourceLocation getLootTable() { return null; }
+        @Override protected void dropFewItems(boolean hit, int looting) {
+            super.dropFewItems(hit, looting);
+            if (hit) entityDropItem(new ItemStack(SWContent.Soul), 0F);
+            if (hit && (rand.nextInt(3) == 0 || rand.nextInt(1 + looting) > 0)) entityDropItem(new ItemStack(Items.STRING, 2), 0F);
+        }
+        @Override protected SoundEvent getAmbientSound() { return SoundEvents.ENTITY_SPIDER_AMBIENT; }
+        @Override protected SoundEvent getHurtSound(DamageSource d) { return SoundEvents.ENTITY_SPIDER_AMBIENT; }
+        @Override protected SoundEvent getDeathSound() { return SoundEvents.ENTITY_SPIDER_DEATH; }
+        @Override protected float getSoundPitch() { return super.getSoundPitch() * -1.0F; }
+        @Override public PassiveSpider createChild(EntityAgeable a) { return new PassiveSpider(world); }
+        @Override public boolean getCanSpawnHere() { return true; }
+    }
+
+    /** Shadow wolf: tamed with souls (golden souls always tame, bones still work); hunts Lights. */
     public static class ShadowWolf extends EntityWolf {
         public ShadowWolf(World w) { super(w); setSize(1.0F, 1.2F); }
+        @Override protected void initEntityAI() {
+            super.initEntityAI();
+            targetTasks.addTask(4, new EntityAITargetNonTamed<>(this, Light.class, false, null));
+        }
+        @Override public boolean canAttackClass(Class<? extends EntityLivingBase> c) {
+            return c != SWAngels.Angel.class && c != ShadowWolfKing.class && super.canAttackClass(c);
+        }
         @Override protected void applyEntityAttributes() {
             super.applyEntityAttributes();
             getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.4);
         }
+        /** The 1.7 code swaps these: untamed 40, tamed 20. */
         @Override public void setTamed(boolean t) {
             super.setTamed(t);
-            getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(t ? 40.0 : 20.0);
+            getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(t ? 20.0 : 40.0);
         }
+        @Override protected Item getDropItem() { return null; }
+        @Override protected net.minecraft.util.ResourceLocation getLootTable() { return null; }
+        @Override public int getMaxSpawnedInChunk() { return 8; }
+        @Override protected float getSoundVolume() { return 0.4F; }
+        @Override protected float getSoundPitch() { return super.getSoundPitch() * -10.0F; }
         @Override public boolean processInteract(EntityPlayer p, EnumHand h) {
             ItemStack s = p.getHeldItem(h);
             boolean golden = s.getItem() == SWContent.GoldenSoul;
@@ -233,45 +623,168 @@ public final class SWEntities {
                 }
                 return true;
             }
-            if (!isTamed() && s.getItem() == Items.BONE) return false;
             return super.processInteract(p, h);
         }
-        @Override public boolean canMateWith(EntityAnimal o) { return o instanceof ShadowWolf && super.canMateWith(o); }
+        @Override public boolean canMateWith(EntityAnimal o) {
+            return o != this && isTamed() && o instanceof ShadowWolf w && w.isTamed() && !w.isSitting() && isInLove() && w.isInLove();
+        }
         @Override public ShadowWolf createChild(EntityAgeable a) {
             ShadowWolf w = new ShadowWolf(world);
             if (getOwnerId() != null) { w.setOwnerId(getOwnerId()); w.setTamed(true); }
             return w;
         }
-        @Override protected float getSoundPitch() { return super.getSoundPitch() * 0.5F; }
         @Override public boolean getCanSpawnHere() { return true; }
     }
 
-    public static class JellyFish extends EntitySquid {
-        public JellyFish(World w) { super(w); }
-        @Override public boolean attackEntityAsMob(Entity e) { return e.attackEntityFrom(DamageSource.causeMobDamage(this), 2F); }
-        @Override public void onCollideWithPlayer(EntityPlayer p) { if (!world.isRemote && rand.nextInt(20) == 0) p.addPotionEffect(new PotionEffect(MobEffects.POISON, 60, 0)); }
+    /** Glowing jellyfish: squid swimming, 4 skins, 4 sizes. */
+    public static class JellyFish extends EntityWaterMob {
+        private static final DataParameter<Byte> SKIN = key(JellyFish.class, DataSerializers.BYTE);
+        private static final DataParameter<Byte> SCALE = key(JellyFish.class, DataSerializers.BYTE);
+        public float squidPitch, prevSquidPitch, squidYaw, prevSquidYaw, squidRotation, prevSquidRotation, tentacleAngle, prevTentacleAngle;
+        private float randomMotionSpeed, rotationVelocity, rotateSpeed, randomMotionVecX, randomMotionVecY, randomMotionVecZ;
+        public JellyFish(World w) {
+            super(w);
+            setSize(1.0F, 1.0F);
+            rotationVelocity = 1.0F / (rand.nextFloat() + 1.0F) * 0.2F;
+        }
+        @Override protected void applyEntityAttributes() { super.applyEntityAttributes(); getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(10.0); }
+        @Override protected void entityInit() {
+            super.entityInit();
+            dataManager.register(SKIN, (byte) (1 + rand.nextInt(3)));
+            dataManager.register(SCALE, (byte) rand.nextInt(4));
+        }
+        public int getSkin() { return dataManager.get(SKIN); }
+        public int getScale() { return dataManager.get(SCALE); }
+        @Override public void writeEntityToNBT(NBTTagCompound t) { super.writeEntityToNBT(t); t.setInteger("Skin", getSkin()); t.setInteger("Scale", getScale()); }
+        @Override public void readEntityFromNBT(NBTTagCompound t) { super.readEntityFromNBT(t); dataManager.set(SKIN, (byte) t.getInteger("Skin")); dataManager.set(SCALE, (byte) t.getInteger("Scale")); }
+        @Override protected SoundEvent getAmbientSound() { return null; }
+        @Override protected SoundEvent getHurtSound(DamageSource d) { return null; }
+        @Override protected SoundEvent getDeathSound() { return null; }
+        @Override protected float getSoundVolume() { return 0.4F; }
         @Override protected Item getDropItem() { return SWContent.GlowingInkSac; }
-        @Override protected void dropFewItems(boolean hit, int looting) { dropItem(SWContent.GlowingInkSac, 1 + rand.nextInt(2)); }
-        @Override public boolean getCanSpawnHere() { return posY > 30 && posY < 90; }
-    }
-
-    /** Glowing flying light orb (bat movement); hunted by shadows. */
-    public static class Light extends EntityBat {
-        public Light(World w) { super(w); setSize(0.5F, 0.5F); }
-        @Override protected void applyEntityAttributes() { super.applyEntityAttributes(); getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(2.0); }
-        @Override public boolean getIsBatHanging() { return false; }
-        @Override public SoundEvent getAmbientSound() { return null; }
-        @Override protected void dropFewItems(boolean hit, int looting) { dropItem(Items.GLOWSTONE_DUST, 1); if (rand.nextInt(3) == 0) dropItem(SWContent.Soul, 1); }
-        @Override public int getBrightnessForRender() { return 0xF000F0; }
+        @Override protected net.minecraft.util.ResourceLocation getLootTable() { return null; }
+        @Override protected boolean canTriggerWalking() { return false; }
+        @Override protected void dropFewItems(boolean hit, int looting) {
+            int j = rand.nextInt(3 + looting) + 1;
+            for (int k = 0; k < j; k++) entityDropItem(new ItemStack(SWContent.GlowingInkSac), 0F);
+        }
+        @Override public boolean isInWater() { return world.handleMaterialAcceleration(getEntityBoundingBox().grow(0.0, -0.6, 0.0), net.minecraft.block.material.Material.WATER, this); }
+        @Override public void onLivingUpdate() {
+            super.onLivingUpdate();
+            prevSquidPitch = squidPitch; prevSquidYaw = squidYaw; prevSquidRotation = squidRotation; prevTentacleAngle = tentacleAngle;
+            squidRotation += rotationVelocity;
+            if (squidRotation > (float) (Math.PI * 2)) {
+                squidRotation -= (float) (Math.PI * 2);
+                if (rand.nextInt(10) == 0) rotationVelocity = 1.0F / (rand.nextFloat() + 1.0F) * 0.2F;
+            }
+            if (isInWater()) {
+                if (squidRotation < (float) Math.PI) {
+                    float f = squidRotation / (float) Math.PI;
+                    tentacleAngle = MathHelper.sin(f * f * (float) Math.PI) * (float) Math.PI * 0.15F;
+                    if (f > 0.75) { randomMotionSpeed = 1.0F; rotateSpeed = 1.0F; } else rotateSpeed *= 0.8F;
+                } else {
+                    tentacleAngle = 0.0F;
+                    randomMotionSpeed *= 0.9F;
+                    rotateSpeed *= 0.99F;
+                }
+                if (!world.isRemote) {
+                    motionX = randomMotionVecX * randomMotionSpeed;
+                    motionY = randomMotionVecY * randomMotionSpeed;
+                    motionZ = randomMotionVecZ * randomMotionSpeed;
+                }
+                float f = MathHelper.sqrt(motionX * motionX + motionZ * motionZ);
+                renderYawOffset += (-((float) MathHelper.atan2(motionX, motionZ)) * 180.0F / (float) Math.PI - renderYawOffset) * 0.1F;
+                rotationYaw = renderYawOffset;
+                squidYaw += (float) Math.PI * rotateSpeed * 1.5F;
+                squidPitch = (-((float) MathHelper.atan2(f, motionY)) * 180.0F / (float) Math.PI - squidPitch) * 0.001F;
+            } else {
+                tentacleAngle = MathHelper.abs(MathHelper.sin(squidRotation)) * (float) Math.PI * 0.15F;
+                if (!world.isRemote) { motionX = 0.0; motionY -= 0.08; motionY *= 0.98F; motionZ = 0.0; }
+                squidPitch = (float) (squidPitch + (-90.0F - squidPitch) * 0.02);
+            }
+        }
+        @Override public void travel(float strafe, float vertical, float forward) { move(net.minecraft.entity.MoverType.SELF, motionX, motionY, motionZ); }
+        @Override protected void updateAITasks() {
+            idleTime++;
+            if (idleTime > 100) randomMotionVecX = randomMotionVecY = randomMotionVecZ = 0.0F;
+            else if (rand.nextInt(50) == 0 || !inWater || randomMotionVecX == 0.0F && randomMotionVecY == 0.0F && randomMotionVecZ == 0.0F) {
+                float f = rand.nextFloat() * (float) Math.PI;
+                randomMotionVecX = MathHelper.cos(f) * 0.1F;
+                randomMotionVecY = -0.1F + rand.nextFloat() * 0.2F;
+                randomMotionVecZ = MathHelper.sin(f) * 0.1F;
+            }
+        }
+        @Override public boolean getCanSpawnHere() { return posY > 45.0 && posY < 63.0 && super.getCanSpawnHere(); }
         @Override public float getBrightness() { return 1.0F; }
+        @Override public int getBrightnessForRender() { return 5728880; }
+    }
+
+    /** 1.7 bat-style random flight shared by Light and Dragonfly. */
+    public abstract static class Flyer extends EntityAmbientCreature {
+        private BlockPos target;
+        protected Flyer(World w) { super(w); }
+        @Override protected void collideWithEntity(Entity e) {}
+        @Override protected void collideWithNearbyEntities() {}
+        @Override public void onUpdate() { super.onUpdate(); motionY *= 0.6F; }
+        @Override protected void updateAITasks() {
+            super.updateAITasks();
+            if (target != null && (!world.isAirBlock(target) || target.getY() < 1)) target = null;
+            if (target == null || rand.nextInt(30) == 0 || target.distanceSq((int) posX, (int) posY, (int) posZ) < 4.0)
+                target = new BlockPos((int) posX + rand.nextInt(7) - rand.nextInt(7), (int) posY + rand.nextInt(6) - 2, (int) posZ + rand.nextInt(7) - rand.nextInt(7));
+            double d0 = target.getX() + 0.5 - posX, d1 = target.getY() + 0.1 - posY, d2 = target.getZ() + 0.5 - posZ;
+            motionX += (Math.signum(d0) * 0.5 - motionX) * 0.1F;
+            motionY += (Math.signum(d1) * 0.7F - motionY) * 0.1F;
+            motionZ += (Math.signum(d2) * 0.5 - motionZ) * 0.1F;
+            float f = (float) (MathHelper.atan2(motionZ, motionX) * 180.0 / Math.PI) - 90.0F;
+            moveForward = 0.5F;
+            rotationYaw += MathHelper.wrapDegrees(f - rotationYaw);
+        }
+        @Override protected boolean canTriggerWalking() { return false; }
+        @Override public void fall(float d, float m) {}
+        @Override protected void updateFallState(double y, boolean g, net.minecraft.block.state.IBlockState s, BlockPos p) {}
+        @Override public boolean doesEntityNotTriggerPressurePlate() { return true; }
         @Override public boolean getCanSpawnHere() { return true; }
     }
 
-    public static class Dragonfly extends EntityBat {
-        public Dragonfly(World w) { super(w); setSize(0.5F, 0.4F); }
-        @Override public boolean getIsBatHanging() { return false; }
-        @Override public SoundEvent getAmbientSound() { return null; }
-        @Override public boolean getCanSpawnHere() { return true; }
+    /** Glowing light orb; prey of shadows, wolves and dwarves. Skins 1..7 (4+ use the default texture, like 1.7). */
+    public static class Light extends Flyer {
+        private static final DataParameter<Byte> SKIN = key(Light.class, DataSerializers.BYTE);
+        public Light(World w) { super(w); experienceValue = 10; setSize(0.5F, 0.9F); }
+        @Override protected void entityInit() { super.entityInit(); dataManager.register(SKIN, (byte) (1 + rand.nextInt(7))); }
+        public int getSkin() { return dataManager.get(SKIN); }
+        @Override public void writeEntityToNBT(NBTTagCompound t) { super.writeEntityToNBT(t); t.setInteger("Skin", getSkin()); }
+        @Override public void readEntityFromNBT(NBTTagCompound t) { super.readEntityFromNBT(t); dataManager.set(SKIN, (byte) t.getInteger("Skin")); }
+        @Override protected void applyEntityAttributes() { super.applyEntityAttributes(); getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(2.0); }
+        @Override protected float getSoundVolume() { return 0.1F; }
+        @Override protected SoundEvent getAmbientSound() { return null; }
+        @Override protected SoundEvent getHurtSound(DamageSource d) { return null; }
+        @Override protected SoundEvent getDeathSound() { return SoundEvents.ENTITY_BAT_DEATH; }
+        @Override protected float getSoundPitch() { return super.getSoundPitch() * -10.0F; }
+        @Override public boolean canBePushed() { return false; }
+        @Override public float getBrightness() { return 1.0F; }
+        @Override public int getBrightnessForRender() { return 0xF000F0; }
+        @Override protected Item getDropItem() { return Items.GLOWSTONE_DUST; }
+        @Override protected void dropFewItems(boolean hit, int looting) {
+            super.dropFewItems(hit, looting);
+            if (hit) { entityDropItem(new ItemStack(SWContent.Soul), 0F); entityDropItem(new ItemStack(Items.GLOWSTONE_DUST), 0F); }
+        }
+    }
+
+    /** Dragonfly in 4 sizes. */
+    public static class Dragonfly extends Flyer {
+        private static final DataParameter<Byte> SCALE = key(Dragonfly.class, DataSerializers.BYTE);
+        public Dragonfly(World w) { super(w); setSize(1.0F, 1.0F); }
+        @Override protected void entityInit() { super.entityInit(); dataManager.register(SCALE, (byte) (rand.nextInt(4) + 1)); }
+        public int getScale() { return dataManager.get(SCALE); }
+        @Override public void writeEntityToNBT(NBTTagCompound t) { super.writeEntityToNBT(t); t.setInteger("Scale", getScale()); }
+        @Override public void readEntityFromNBT(NBTTagCompound t) { super.readEntityFromNBT(t); dataManager.set(SCALE, (byte) t.getInteger("Scale")); }
+        @Override protected void applyEntityAttributes() { super.applyEntityAttributes(); getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(6.0); }
+        @Override protected float getSoundVolume() { return 0.1F; }
+        @Override protected float getSoundPitch() { return super.getSoundPitch() * 1.95F; }
+        @Override protected SoundEvent getAmbientSound() { return SoundEvents.ENTITY_BAT_AMBIENT; }
+        @Override protected SoundEvent getHurtSound(DamageSource d) { return SoundEvents.ENTITY_BAT_HURT; }
+        @Override protected SoundEvent getDeathSound() { return SoundEvents.ENTITY_BAT_DEATH; }
+        @Override public boolean canBePushed() { return true; }
     }
 
     /** 1.7 EntityFire/Earth/Water/AirGolem: built guardians that hunt monsters (never players, except a provoked Air Golem). */

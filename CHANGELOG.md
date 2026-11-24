@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0
+## 1.1.1
 Full code port: the original 1.7.10 logic is now ported line by line instead of being approximated. Requires ArchaicLib 1.43.0+.
 ### Added
 - Angel World: the third dimension with the giant floating Angel Village (all 21 original village parts, ~450k blocks, generated chunk by chunk without lag), Angel Villager houses with chests and traders, flying boats with loot, the Angel World sky.
@@ -12,6 +12,7 @@ Full code port: the original 1.7.10 logic is now ported line by line instead of 
 - Crossbow bolts (1.7 speed and charge, poisonous / burning crossbows), Shadow Chicken eggs that explode when picked up.
 - 3D crossbows, staffs and the open diary book in hand; connected Azurite Runes (animated in a pedestal circle); connected Shadow Fences.
 ### Changed
+- All remaining mobs now follow the original code instead of vanilla stand-ins: Shadow (dark zombie with glowing eyes, enderman behaviour), Light (7 skins), Shadow Dragonfly (4 sizes), Jellyfish (squid swimming, 4 skins, 4 sizes, glow), Shadow Creeper (radius 7, pulls everything in while it swells, hunts dwarves), Exploding Wolf (double blast), Shadow Slime (grows when killed), Cookie Slime (harmless, regenerates you, splits into many), Shadow Pig (saddle it and fly), Cookie Pig (bite it five times), Passive Spider (small, climbs), Skeleton/Wolf Spiders (glowing eyes, original drops and AI), Shadow Wolf (original taming and health).
 - Shadow Wolf King: fireballs, the wolf-pack super attack and the dragon-like death from the original.
 - Golems are guardians again: they hunt monsters and never attack players (Air Golem only when hit), with their own element attacks, particles and drops.
 
