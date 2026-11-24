@@ -274,39 +274,99 @@ public final class SWEntities {
         @Override public boolean getCanSpawnHere() { return true; }
     }
 
-    /** Elemental golems guarding the temples; drop their element stone. */
+    /** 1.7 EntityFire/Earth/Water/AirGolem: built guardians that hunt monsters (never players, except a provoked Air Golem). */
     public static class Golem extends EntityGolem {
         public final int element; // 0 fire 1 earth 2 water 3 air
-        public Golem(World w, int element) { super(w); this.element = element; setSize(1.4F, 2.9F); if (element == 0) isImmuneToFire = true; }
+        public Golem(World w, int element) {
+            super(w);
+            this.element = element;
+            setSize(1.4F, 2.9F);
+            if (element == 0 || element == 3) isImmuneToFire = true;
+        }
         @Override protected void initEntityAI() {
             tasks.addTask(1, new EntityAIAttackMelee(this, 1.0, true));
             tasks.addTask(2, new EntityAIMoveTowardsTarget(this, 0.9, 32.0F));
+            tasks.addTask(4, new EntityAIMoveTowardsRestriction(this, 1.0));
+            if (element == 2) tasks.addTask(5, new EntityAISwimming(this));
             tasks.addTask(6, new EntityAIWander(this, 0.6));
             tasks.addTask(7, new EntityAIWatchClosest(this, EntityPlayer.class, 6.0F));
             tasks.addTask(8, new EntityAILookIdle(this));
-            targetTasks.addTask(1, new EntityAIHurtByTarget(this, false));
-            targetTasks.addTask(2, new EntityAINearestAttackableTarget<>(this, EntityPlayer.class, true));
+            targetTasks.addTask(2, new EntityAIHurtByTarget(this, false));
+            targetTasks.addTask(3, new EntityAINearestAttackableTarget<>(this, EntityLiving.class, 0, false, true, IMob.MOB_SELECTOR));
         }
         @Override protected void applyEntityAttributes() {
             super.applyEntityAttributes();
-            getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(50.0);
-            getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.35);
+            int idx = Math.max(0, Math.min(3, element));
+            getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(new double[]{50.0, 50.0, 25.0, 75.0}[idx]);
+            getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(element == 0 ? 0.35 : 0.25);
             getAttributeMap().registerAttribute(SharedMonsterAttributes.ATTACK_DAMAGE).setBaseValue(7.0);
         }
-        @Override public boolean attackEntityAsMob(Entity e) {
-            boolean b = e.attackEntityFrom(DamageSource.causeMobDamage(this), 7 + rand.nextInt(15));
-            if (b) {
-                e.motionY += 0.4;
-                if (element == 0) e.setFire(10);
-                if (element == 3 && e instanceof EntityLivingBase l) l.addPotionEffect(new PotionEffect(MobEffects.LEVITATION, 60, 1));
-                if (element == 2 && e instanceof EntityLivingBase l) l.addPotionEffect(new PotionEffect(MobEffects.SLOWNESS, 100, 2));
-            }
-            return b;
+        @Override protected int decreaseAirSupply(int air) { return element == 1 ? super.decreaseAirSupply(air) : air; }
+        @Override protected void collideWithEntity(Entity e) {
+            if (e instanceof IMob && e instanceof EntityLivingBase l && getRNG().nextInt(20) == 0) setAttackTarget(l);
+            super.collideWithEntity(e);
         }
+        @Override public boolean canAttackClass(Class<? extends EntityLivingBase> c) {
+            if (element == 3) return super.canAttackClass(c);
+            return !ShadowWolfKing.class.isAssignableFrom(c) && !EntityPlayer.class.isAssignableFrom(c) && super.canAttackClass(c);
+        }
+        @Override public void onLivingUpdate() {
+            super.onLivingUpdate();
+            if (getHealth() < getMaxHealth()) addPotionEffect(new PotionEffect(MobEffects.REGENERATION, element == 1 ? 10 : 1, 1));
+            if (!world.isRemote) return;
+            switch (element) {
+                case 0 -> {
+                    if (rand.nextInt(24) == 0) world.playSound(posX + 0.5, posY + 0.5, posZ + 0.5, SoundEvents.BLOCK_FIRE_AMBIENT, getSoundCategory(), 1.0F + rand.nextFloat(), rand.nextFloat() * 0.7F + 0.3F, false);
+                    particles(EnumParticleTypes.SMOKE_LARGE, 2);
+                    particles(EnumParticleTypes.FLAME, 2);
+                }
+                case 1 -> particles(EnumParticleTypes.TOWN_AURA, 6);
+                case 2 -> { if (isInWater()) particles(EnumParticleTypes.WATER_BUBBLE, 2); }
+                default -> particles(EnumParticleTypes.CLOUD, 2);
+            }
+        }
+        private void particles(EnumParticleTypes t, int n) {
+            for (int i = 0; i < n; i++)
+                world.spawnParticle(t, posX + (rand.nextDouble() - 0.5) * width, posY + rand.nextDouble() * height, posZ + (rand.nextDouble() - 0.5) * width, 0.0, 0.0, 0.0);
+        }
+        @Override public boolean attackEntityAsMob(Entity e) {
+            boolean hit = e.attackEntityFrom(DamageSource.causeMobDamage(this), 7 + rand.nextInt(15));
+            switch (element) {
+                case 0 -> {
+                    if (hit) e.motionY += 0.4F;
+                    if (!e.isImmuneToFire()) e.setFire(10);
+                    return true;
+                }
+                case 1 -> {
+                    if (hit) {
+                        e.motionY += 0.1F;
+                        world.createExplosion(this, e.posX, e.posY, e.posZ, 1.0F, false);
+                    }
+                    return hit;
+                }
+                case 2 -> {
+                    if (hit) {
+                        e.motionY -= 0.6F;
+                        e.noClip = true;
+                    }
+                    return hit;
+                }
+                default -> {
+                    if (hit) e.motionY += 0.4F;
+                    if (!e.isImmuneToFire()) world.addWeatherEffect(new EntityLightningBolt(world, e.posX, e.posY, e.posZ, false));
+                    return true;
+                }
+            }
+        }
+        @Override protected SoundEvent getAmbientSound() { return element == 0 ? SoundEvents.ENTITY_BLAZE_AMBIENT : null; }
+        @Override protected SoundEvent getHurtSound(DamageSource d) { return element == 0 ? SoundEvents.ENTITY_BLAZE_HURT : element == 3 ? null : SoundEvents.ENTITY_IRONGOLEM_HURT; }
+        @Override protected SoundEvent getDeathSound() { return element == 0 ? SoundEvents.ENTITY_BLAZE_DEATH : SoundEvents.ENTITY_IRONGOLEM_DEATH; }
+        @Override protected void playStepSound(BlockPos p, net.minecraft.block.Block b) {}
         @Override protected boolean canDespawn() { return false; }
         @Override protected void dropFewItems(boolean hit, int looting) {
             Item stone = switch (element) { case 0 -> SWContent.FireStone; case 1 -> SWContent.EarthStone; case 2 -> SWContent.WaterStone; default -> SWContent.AirStone; };
-            dropItem(stone, 1);
+            int k = rand.nextInt(2);
+            for (int i = 0; i < k; i++) entityDropItem(new ItemStack(stone), 0.0F);
         }
         @Override public void fall(float d, float m) { if (element != 3) super.fall(d, m); }
     }
