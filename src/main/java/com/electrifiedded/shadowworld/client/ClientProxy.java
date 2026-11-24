@@ -123,6 +123,11 @@ public class ClientProxy extends CommonProxy {
             @Override protected void preRenderCallback(com.electrifiedded.shadowworld.entity.SWDwarves.TravellingDwarf e, float pt) { GlStateManager.scale(0.8F, 0.8F, 0.8F); }
         });
         RenderingRegistry.registerEntityRenderingHandler(com.electrifiedded.shadowworld.entity.SWAngels.AngelVillager.class, AngelRenderers.VillagerRender::new);
+        RenderingRegistry.registerEntityRenderingHandler(com.electrifiedded.shadowworld.entity.SWProjectiles.CrossBowArrow.class, m -> new RenderArrow<com.electrifiedded.shadowworld.entity.SWProjectiles.CrossBowArrow>(m) {
+            private final ResourceLocation t = tex("CrossBowArrow");
+            @Override protected ResourceLocation getEntityTexture(com.electrifiedded.shadowworld.entity.SWProjectiles.CrossBowArrow e) { return t; }
+        });
+        RenderingRegistry.registerEntityRenderingHandler(com.electrifiedded.shadowworld.entity.SWProjectiles.ExplodingItem.class, m -> new RenderEntityItem(m, Minecraft.getMinecraft().getRenderItem()));
         RenderingRegistry.registerEntityRenderingHandler(com.electrifiedded.shadowworld.tile.AngelPortals.EntityFalling.class, AngelRenderers.FallingRenderer::new);
         net.minecraftforge.fml.client.registry.ClientRegistry.bindTileEntitySpecialRenderer(com.electrifiedded.shadowworld.tile.AngelPortals.TilePortal.class, new AngelRenderers.PortalRenderer());
         RenderingRegistry.registerEntityRenderingHandler(EntityElementStone.class, m -> new RenderSnowball<EntityElementStone>(m, SWContent.FireStone, Minecraft.getMinecraft().getRenderItem()) {

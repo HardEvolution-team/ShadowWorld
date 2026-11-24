@@ -318,35 +318,45 @@ public final class SWItemTypes {
     public static class Crossbow extends Item {
         final int type;
         public Crossbow(int type) { this.type = type; setMaxStackSize(1); setMaxDamage(384); setFull3D(); }
+        @Override public net.minecraft.item.EnumRarity getRarity(ItemStack s) { return type == 1 ? net.minecraft.item.EnumRarity.COMMON : net.minecraft.item.EnumRarity.UNCOMMON; }
+        @Override public boolean isEnchantable(ItemStack s) { return true; }
+        @Override public int getItemEnchantability() { return 1; }
+        @Override @net.minecraftforge.fml.relauncher.SideOnly(net.minecraftforge.fml.relauncher.Side.CLIENT)
+        public void addInformation(ItemStack s, @javax.annotation.Nullable World w, java.util.List<String> l, net.minecraft.client.util.ITooltipFlag f) {
+            if (type == 2) l.add(net.minecraft.util.text.TextFormatting.ITALIC + "Shots burning arrows");
+            if (type == 3) l.add(net.minecraft.util.text.TextFormatting.ITALIC + "Shots poisonous arrows");
+        }
         @Override public int getMaxItemUseDuration(ItemStack s) { return 72000; }
         @Override public EnumAction getItemUseAction(ItemStack s) { return EnumAction.BOW; }
         @Override public ActionResult<ItemStack> onItemRightClick(World w, EntityPlayer p, EnumHand h) {
             ItemStack s = p.getHeldItem(h);
             boolean ammo = p.capabilities.isCreativeMode || p.inventory.hasItemStack(new ItemStack(SWContent.CrossBowArrow));
+            ActionResult<ItemStack> nock = net.minecraftforge.event.ForgeEventFactory.onArrowNock(s, w, p, h, ammo);
+            if (nock != null) return nock;
             if (!ammo) return new ActionResult<>(EnumActionResult.FAIL, s);
             p.setActiveHand(h);
             return new ActionResult<>(EnumActionResult.SUCCESS, s);
         }
         @Override public void onPlayerStoppedUsing(ItemStack s, World w, EntityLivingBase e, int left) {
             if (!(e instanceof EntityPlayer p)) return;
-            float f = (getMaxItemUseDuration(s) - left) / 20.0F;
-            f = (f * f + f * 2.0F) / 3.0F;
+            int charge = net.minecraftforge.event.ForgeEventFactory.onArrowLoose(s, w, p, getMaxItemUseDuration(s) - left, true);
+            if (charge < 0) return;
+            float f = charge / 20.0F;
+            f = f * f + f * 2.0F; // 1.7 crossbow: no /3, full power after ~0.4 s
             if (f < 0.1) return;
             if (f > 1.0F) f = 1.0F;
+            boolean infinite = p.capabilities.isCreativeMode || net.minecraft.enchantment.EnchantmentHelper.getEnchantmentLevel(net.minecraft.init.Enchantments.INFINITY, s) > 0;
             if (!w.isRemote) {
-                EntityTippedArrow a = new EntityTippedArrow(w, p);
-                a.shoot(p, p.rotationPitch, p.rotationYaw, 0.0F, f * 4.0F, 0.5F);
-                a.setDamage(a.getDamage() + 2.0);
-                if (f >= 1.0F) a.setIsCritical(true);
+                com.electrifiedded.shadowworld.entity.SWProjectiles.CrossBowArrow a = new com.electrifiedded.shadowworld.entity.SWProjectiles.CrossBowArrow(w, p, 2.5F);
+                if (f == 1.0F) a.setIsCritical(true);
                 if (type == 2) a.setFire(100);
-                if (type == 3) a.addEffect(new PotionEffect(MobEffects.POISON, 200, 1));
-                if (p.capabilities.isCreativeMode) a.pickupStatus = EntityArrow.PickupStatus.CREATIVE_ONLY;
+                if (type == 3) a.ispoisonous = true;
+                if (infinite) a.pickupStatus = EntityArrow.PickupStatus.CREATIVE_ONLY;
                 else {
                     for (int i = 0; i < p.inventory.getSizeInventory(); i++) {
                         ItemStack a2 = p.inventory.getStackInSlot(i);
                         if (a2.getItem() == SWContent.CrossBowArrow) { a2.shrink(1); break; }
                     }
-                    a.pickupStatus = EntityArrow.PickupStatus.DISALLOWED;
                 }
                 w.spawnEntity(a);
                 s.damageItem(1, p);

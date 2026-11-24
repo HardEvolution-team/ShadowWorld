@@ -104,7 +104,8 @@ public final class SWEntities {
     }
 
     public static class ShadowChicken extends EntityMob {
-        public ShadowChicken(World w) { super(w); setSize(0.3F, 0.7F); }
+        private int timeUntilNextEgg;
+        public ShadowChicken(World w) { super(w); setSize(0.3F, 0.7F); timeUntilNextEgg = rand.nextInt(6000) + 6000; }
         @Override protected void initEntityAI() {
             tasks.addTask(0, new EntityAISwimming(this));
             tasks.addTask(2, new EntityAIAttackMelee(this, 1.2, false));
@@ -124,6 +125,11 @@ public final class SWEntities {
         @Override public void onLivingUpdate() {
             super.onLivingUpdate();
             if (!onGround && motionY < 0.0) motionY *= 0.6;
+            if (!world.isRemote && --timeUntilNextEgg <= 0) {
+                playSound(SoundEvents.ENTITY_CHICKEN_EGG, 1.0F, (rand.nextFloat() - rand.nextFloat()) * 0.2F + 1.0F);
+                world.spawnEntity(new SWProjectiles.ExplodingItem(world, posX, posY, posZ, new ItemStack(Items.EGG)));
+                timeUntilNextEgg = rand.nextInt(6000) + 6000;
+            }
         }
         @Override protected SoundEvent getAmbientSound() { return SoundEvents.ENTITY_CHICKEN_AMBIENT; }
         @Override protected SoundEvent getHurtSound(DamageSource d) { return SoundEvents.ENTITY_CHICKEN_HURT; }

@@ -113,6 +113,8 @@ public class ShadowWorld {
         LegacyGameRegistry.registerModEntity(EntityElementStone.class, "ElementStone", id++, this, 64, 5, true);
         LegacyGameRegistry.registerModEntity(com.electrifiedded.shadowworld.entity.EntityFlyingBoat.class, "FlyingBoat", id++, this, 128, 1, true);
         LegacyGameRegistry.registerModEntity(com.electrifiedded.shadowworld.item.SWFinders.EntityDungeonFinder.class, "DungoenFinder", id++, this, 64, 5, true);
+        LegacyGameRegistry.registerModEntity(com.electrifiedded.shadowworld.entity.SWProjectiles.CrossBowArrow.class, "CrossBowArrow", id++, this, 64, 20, false);
+        LegacyGameRegistry.registerModEntity(com.electrifiedded.shadowworld.entity.SWProjectiles.ExplodingItem.class, "ExplodingItem", id++, this, 64, 20, true);
         LegacyGameRegistry.registerModEntity(com.electrifiedded.shadowworld.tile.AngelPortals.EntityFalling.class, "FallingAngelPortal", id++, this, 128, 1, true);
     }
 
