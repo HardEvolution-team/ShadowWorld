@@ -110,6 +110,85 @@ public final class SWBlocks2 {
     }
 
     /** Shadow / Hell fire: burns entities, burns out unless it stands on a fire source; shadow fire lights the portal. */
+    /** 1.7 AzuriteRune: redstone-wire-like flat rune (AzuriteRuneRenderingHandler); animated when part of a pedestal circle. */
+    public static class Rune extends SWBlock {
+        static final net.minecraft.block.properties.PropertyBool W = net.minecraft.block.properties.PropertyBool.create("west"),
+                E = net.minecraft.block.properties.PropertyBool.create("east"), N = net.minecraft.block.properties.PropertyBool.create("north"),
+                S = net.minecraft.block.properties.PropertyBool.create("south"), ACTIVE = net.minecraft.block.properties.PropertyBool.create("active");
+
+        public Rune() {
+            super(Material.CIRCUITS, SoundType.GLASS);
+            tex("AzuriteRune_cross", "AzuriteRune_line", "AzuriteRune_cross_animated", "AzuriteRune_line_animated", "AzuriteRune_cross_overlay", "AzuriteRune_line_overlay");
+            bounds(0, 0, 0, 1, 0.0625, 1);
+            noCollide();
+            cutout();
+        }
+
+        @Override protected net.minecraft.block.state.BlockStateContainer createBlockState() { return new net.minecraft.block.state.BlockStateContainer(this, META, W, E, N, S, ACTIVE); }
+
+        @Override
+        public IBlockState getActualState(IBlockState s, IBlockAccess w, BlockPos p) {
+            return s.withProperty(W, w.getBlockState(p.west()).getBlock() == this).withProperty(E, w.getBlockState(p.east()).getBlock() == this)
+                    .withProperty(N, w.getBlockState(p.north()).getBlock() == this).withProperty(S, w.getBlockState(p.south()).getBlock() == this)
+                    .withProperty(ACTIVE, isPartOfCircle(w, p));
+        }
+
+        public static boolean isMiddleOfCircle(IBlockAccess w, BlockPos p) {
+            int n = 0;
+            for (int dx = -1; dx <= 1; dx++)
+                for (int dz = -1; dz <= 1; dz++)
+                    if ((dx != 0 || dz != 0) && w.getBlockState(p.add(dx, 0, dz)).getBlock() == SWContent.AzuriteRune) n++;
+            return n == 8;
+        }
+
+        public static boolean isPartOfCircle(IBlockAccess w, BlockPos p) {
+            for (int dx = -1; dx <= 1; dx++)
+                for (int dz = -1; dz <= 1; dz++) {
+                    BlockPos q = p.add(dx, 0, dz);
+                    IBlockState s = w.getBlockState(q);
+                    if (!s.isNormalCube() && s.getBlock() != SWContent.AzuriteRune && isMiddleOfCircle(w, q)) return true;
+                }
+            return false;
+        }
+
+        @Override public boolean canPlaceBlockAt(World w, BlockPos p) { return w.getBlockState(p.down()).isTopSolid() || w.getBlockState(p.down()).getBlock() == net.minecraft.init.Blocks.GLOWSTONE; }
+        @Override
+        public void neighborChanged(IBlockState s, World w, BlockPos p, Block b, BlockPos from) {
+            if (!w.isRemote && !canPlaceBlockAt(w, p)) { dropBlockAsItem(w, p, s, 0); w.setBlockToAir(p); }
+        }
+        @Override public float getEnchantPowerBonus(World w, BlockPos p) { return 3.0F; }
+
+        @Override
+        public int getArchaicRenderKey(IBlockState s) {
+            return (s.getValue(W) ? 1 : 0) | (s.getValue(E) ? 2 : 0) | (s.getValue(N) ? 4 : 0) | (s.getValue(S) ? 8 : 0) | (s.getValue(ACTIVE) ? 16 : 0);
+        }
+        @Override public int getArchaicItemRenderKey(int meta) { return 0; }
+
+        @Override
+        @SideOnly(Side.CLIENT)
+        public List<ArchaicRenderPart> getArchaicRenderParts(int key) {
+            if (icons == null || icons.length < 6) return null;
+            boolean w = (key & 1) != 0, e = (key & 2) != 0, n = (key & 4) != 0, s = (key & 8) != 0, active = (key & 16) != 0;
+            IIcon cross = icons[active ? 2 : 0], line = icons[active ? 3 : 1];
+            double y = 0.015625;
+            List<ArchaicRenderPart> p = new ArrayList<>();
+            int mode = (w || e) && !n && !s ? 1 : (n || s) && !e && !w ? 2 : 0;
+            if (mode == 0) {
+                double x0 = w ? 0 : 0.3125, x1 = e ? 1 : 0.6875, z0 = n ? 0 : 0.3125, z1 = s ? 1 : 0.6875;
+                double u0 = x0 * 16, u1 = x1 * 16, v0 = z0 * 16, v1 = z1 * 16;
+                for (IIcon ic : new IIcon[]{cross, icons[4]})
+                    p.add(ArchaicRenderPart.quad(ic, new double[]{x1, y, z1, u1, v1}, new double[]{x1, y, z0, u1, v0}, new double[]{x0, y, z0, u0, v0}, new double[]{x0, y, z1, u0, v1}).doubleSided());
+            } else if (mode == 1) {
+                for (IIcon ic : new IIcon[]{line, icons[5]})
+                    p.add(ArchaicRenderPart.quad(ic, new double[]{1, y, 1, 16, 16}, new double[]{1, y, 0, 16, 0}, new double[]{0, y, 0, 0, 0}, new double[]{0, y, 1, 0, 16}).doubleSided());
+            } else {
+                for (IIcon ic : new IIcon[]{line, icons[5]})
+                    p.add(ArchaicRenderPart.quad(ic, new double[]{1, y, 1, 16, 16}, new double[]{1, y, 0, 0, 16}, new double[]{0, y, 0, 0, 0}, new double[]{0, y, 1, 16, 0}).doubleSided());
+            }
+            return p;
+        }
+    }
+
     /** 1.7 AngelBlock = BlockQuartz with angel textures: 0 plain, 1 chiseled, 2/3/4 pillar (Y/X/Z). */
     public static class AngelQuartz extends SWBlock {
         public AngelQuartz() {

@@ -40,6 +40,7 @@ public class ClientProxy extends CommonProxy {
 
     @Override
     public void preInit() {
+        SWItemRenderers.register();
         RenderingRegistry.registerEntityRenderingHandler(com.electrifiedded.shadowworld.item.SWFinders.EntityDungeonFinder.class,
                 m -> new net.minecraft.client.renderer.entity.RenderSnowball<>(m, SWContent.DungeonFinder, Minecraft.getMinecraft().getRenderItem()));
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new Object() {

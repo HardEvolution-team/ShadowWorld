@@ -178,7 +178,7 @@ public final class SWContent {
         ShadowChestTrapped = b("ShadowChestTrapped", new com.electrifiedded.shadowworld.tile.SWChests.ChestBlock(com.electrifiedded.shadowworld.tile.SWChests.Kind.SHADOW_TRAPPED));
         Pedestal = b("Pedestal", new com.electrifiedded.shadowworld.tile.Pedestals.PedestalBlock());
         net.minecraftforge.fml.common.registry.GameRegistry.registerTileEntity(com.electrifiedded.shadowworld.tile.Pedestals.TilePedestal.class, new net.minecraft.util.ResourceLocation("shadowworld", "pedestal"));
-        AzuriteRune = b("AzuriteRune", "AzuriteRune", new SWBlock(Material.CIRCUITS, SoundType.GLASS).tex("AzuriteRune_cross").bounds(0, 0, 0, 1, 0.0625, 1).noCollide().cutout().light(0.25F).hr(0F, 0F).drops(() -> AzuriteShard, 1, 1), null);
+        AzuriteRune = b("AzuriteRune", "AzuriteRune", new com.electrifiedded.shadowworld.block.SWBlocks2.Rune().light(0.25F).hr(0F, 0F).drops(() -> AzuriteShard, 1, 1), null);
         GlowStoneTorch = b("GlowStoneTorch", (SWBlock) new SWBlock(Material.CIRCUITS, SoundType.WOOD).tex("GlowStoneTorch").cross().light(1.0F).hr(0F, 0F));
         Shadowfield = b("Shadowfield", "Shadowfield", new Field().hr(1F, 10F), null);
         ShadowFence = b("ShadowFence", (SWBlock) new SWBlock(Material.WOOD, SoundType.WOOD).tex("ShadowPlanks").bounds(0.375, 0, 0.375, 0.625, 1, 0.625).hr(5F, 1F));
