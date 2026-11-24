@@ -40,6 +40,33 @@ public class ClientProxy extends CommonProxy {
 
     @Override
     public void preInit() {
+        RenderingRegistry.registerEntityRenderingHandler(com.electrifiedded.shadowworld.item.SWFinders.EntityDungeonFinder.class,
+                m -> new net.minecraft.client.renderer.entity.RenderSnowball<>(m, SWContent.DungeonFinder, Minecraft.getMinecraft().getRenderItem()));
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new Object() {
+            @net.minecraftforge.fml.common.eventhandler.SubscribeEvent
+            public void stitch(net.minecraftforge.client.event.TextureStitchEvent.Pre e) {
+                com.electrifiedded.archaiclib.client.texture.AngleSprite.register(e, new com.electrifiedded.archaiclib.client.texture.AngleSprite("shadowworld:items/ShadowCompass") {
+                    @Override
+                    protected double targetAngle(Minecraft mc) {
+                        net.minecraft.item.ItemStack s = mc.player.getHeldItemMainhand();
+                        if (s.getItem() != SWContent.ShadowCompass) s = mc.player.getHeldItemOffhand();
+                        if (s.getItem() != SWContent.ShadowCompass || !s.hasTagCompound() || !s.getTagCompound().hasKey("posX")) return Double.NaN;
+                        return pointTo(mc.player.posX, mc.player.posZ, mc.player.rotationYaw, s.getTagCompound().getDouble("posX"), s.getTagCompound().getDouble("posZ"));
+                    }
+                });
+            }
+        });
+        RenderingRegistry.registerEntityRenderingHandler(com.electrifiedded.shadowworld.entity.EntityFlyingBoat.class, RenderFlyingBoat::new);
+        net.minecraftforge.fml.client.registry.ClientRegistry.bindTileEntitySpecialRenderer(com.electrifiedded.shadowworld.tile.SWChests.TileSWChest.class, new SWChestRenderer());
+        SWChestRenderer.Item chestItem = new SWChestRenderer.Item();
+        for (net.minecraft.block.Block b : new net.minecraft.block.Block[]{SWContent.ShadowChest, SWContent.ShadowChestTrapped, SWContent.AngelChest})
+            Item.getItemFromBlock(b).setTileEntityItemStackRenderer(chestItem);
+        net.minecraftforge.fml.client.registry.ClientRegistry.bindTileEntitySpecialRenderer(com.electrifiedded.shadowworld.tile.Pedestals.TilePedestal.class, new PedestalRenderer());
+        Item.getItemFromBlock(SWContent.Pedestal).setTileEntityItemStackRenderer(new PedestalRenderer.Item());
+        net.minecraftforge.fml.client.registry.ClientRegistry.bindTileEntitySpecialRenderer(com.electrifiedded.shadowworld.tile.SWNotes.TileLamp.class, new LampRenderer());
+        Item.getItemFromBlock(SWContent.Lamp).setTileEntityItemStackRenderer(new LampRenderer.Item());
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(DiaryToast.INSTANCE);
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new SWClientEvents());
         RenderingRegistry.registerEntityRenderingHandler(Shadow.class, m -> new RenderEnderman(m) {
             @Override protected ResourceLocation getEntityTexture(EntityEnderman e) { return tex("Shadow"); }
         });
@@ -82,8 +109,19 @@ public class ClientProxy extends CommonProxy {
         RenderingRegistry.registerEntityRenderingHandler(AirGolem.class, living(new ModelGolem(), 1.0F, "AirGolem", 1F));
         RenderingRegistry.registerEntityRenderingHandler(ShadowWolfKing.class, living(new ModelShadowWolfKing(), 1.0F, "ShadowWolfKing", 1F));
         RenderingRegistry.registerEntityRenderingHandler(Angel.class, living(new ModelAngel(0.0F), 0.5F, "Angel", 1F));
-        RenderingRegistry.registerEntityRenderingHandler(Dwarf.class, living(new ModelBiped(), 0.4F, "Dwarf1", 0.8F));
-        RenderingRegistry.registerEntityRenderingHandler(TravellingDwarf.class, living(new ModelBiped(), 0.4F, "TravellingDwarf", 0.8F));
+        RenderingRegistry.registerEntityRenderingHandler(com.electrifiedded.shadowworld.entity.SWDwarves.Dwarf.class, m -> new RenderBiped<com.electrifiedded.shadowworld.entity.SWDwarves.Dwarf>(m, new ModelBiped(0.0F), 0.5F) {
+            { addLayer(new net.minecraft.client.renderer.entity.layers.LayerBipedArmor(this)); }
+            @Override protected ResourceLocation getEntityTexture(com.electrifiedded.shadowworld.entity.SWDwarves.Dwarf e) {
+                int p = e.getProfession();
+                return tex(p >= 1 && p <= 3 ? "Dwarf" + (p + 1) : "Dwarf1");
+            }
+            @Override protected void preRenderCallback(com.electrifiedded.shadowworld.entity.SWDwarves.Dwarf e, float pt) { GlStateManager.scale(0.8F, 0.8F, 0.8F); }
+        });
+        RenderingRegistry.registerEntityRenderingHandler(com.electrifiedded.shadowworld.entity.SWDwarves.TravellingDwarf.class, m -> new RenderBiped<com.electrifiedded.shadowworld.entity.SWDwarves.TravellingDwarf>(m, new ModelBiped(0.0F), 0.5F) {
+            { addLayer(new net.minecraft.client.renderer.entity.layers.LayerBipedArmor(this)); }
+            @Override protected ResourceLocation getEntityTexture(com.electrifiedded.shadowworld.entity.SWDwarves.TravellingDwarf e) { return tex("TravellingDwarf"); }
+            @Override protected void preRenderCallback(com.electrifiedded.shadowworld.entity.SWDwarves.TravellingDwarf e, float pt) { GlStateManager.scale(0.8F, 0.8F, 0.8F); }
+        });
         RenderingRegistry.registerEntityRenderingHandler(AngelVillager.class, living(new ModelBiped(), 0.5F, "Angel1", 1F));
         RenderingRegistry.registerEntityRenderingHandler(EntityElementStone.class, m -> new RenderSnowball<EntityElementStone>(m, SWContent.FireStone, Minecraft.getMinecraft().getRenderItem()) {
             @Override public net.minecraft.item.ItemStack getStackToRender(EntityElementStone e) {
@@ -91,6 +129,34 @@ public class ClientProxy extends CommonProxy {
                 return new net.minecraft.item.ItemStack(it);
             }
         });
+    }
+
+    @Override public void openTravellingDwarf(com.electrifiedded.shadowworld.entity.SWDwarves.TravellingDwarf d) { Minecraft.getMinecraft().displayGuiScreen(new GuiTravellingDwarf(d)); }
+
+    @Override public void scheduleClient(Runnable r) { Minecraft.getMinecraft().addScheduledTask(r); }
+
+    @Override
+    public void showDiaryToast(com.electrifiedded.shadowworld.net.SWNet.Toast t) {
+        DiaryToast.INSTANCE.show(t.kind == 0 ? "" : t.name, t.stack, t.entity);
+    }
+
+    @Override
+    public void setBrightnessFlag(boolean on) {
+        if (Minecraft.getMinecraft().player != null) Minecraft.getMinecraft().player.getEntityData().setBoolean("brightness", on);
+        SWClientEvents.brightnessFlag = on;
+    }
+
+    @Override
+    public void shadowParticles(net.minecraft.entity.player.EntityPlayer p) {
+        for (int i = 0; i < 15; i++) SWParticles.spawn("Shadow", p.posX, p.posY - 2.5 + p.world.rand.nextDouble() * 1.5 + (p == Minecraft.getMinecraft().player ? 1.62 : 0), p.posZ, 0, 0, 0);
+    }
+
+    @Override
+    public void spawnParticle(String name, double x, double y, double z, double mx, double my, double mz) { SWParticles.spawn(name, x, y, z, mx, my, mz); }
+
+    @Override
+    public Object gui(int id, net.minecraft.entity.player.EntityPlayer p, net.minecraft.world.World w, net.minecraft.util.math.BlockPos pos, Object c) {
+        return SWClientGuis.client(id, p, w, pos, c);
     }
 
     @Override

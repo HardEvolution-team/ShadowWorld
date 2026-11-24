@@ -78,6 +78,7 @@ public final class SWContent {
             CookieSapling, chocoStill, ShadowAir, HangingNote, Lamp, AngelBlock, AngelStairs, AngelDoubleSlab, AngelSingleSlab, MysticalLeaf,
             AngelChest, AngelPortal;
     public static ShadowPortal ShadowPortal;
+    public static net.minecraft.enchantment.Enchantment holy;
     public static CookiePortal CookiePortal;
 
     public static Item Azurite, AzuriteShard, Shadow, BloodStone, Soul, ShadowCrystal, AzuriteSword, AzuritePickaxe, AzuriteAxe, AzuriteShovel,
@@ -169,12 +170,14 @@ public final class SWContent {
 
         ShadowWorkBench = b("ShadowWorkBench", new Workbench(false).hr(5F, 1F));
         ShadowWorkBenchPlus = b("ShadowWorkBenchPlus", new Workbench(true).hr(5F, 1F));
-        SoulFurnace = b("SoulFurnace", (SWBlock) new SWBlock(Material.ROCK, SoundType.STONE).tex("SoulFurnace_top", "SoulFurnace_top", "SoulFurnace_front_off", "SoulFurnace_side", "SoulFurnace_side", "SoulFurnace_side").hr(3.5F, 17.5F));
-        LitSoulFurnace = b("LitSoulFurnace", "SoulFurnace", new SWBlock(Material.ROCK, SoundType.STONE).tex("SoulFurnace_top", "SoulFurnace_top", "SoulFurnace_front_on", "SoulFurnace_side", "SoulFurnace_side", "SoulFurnace_side").hr(3.5F, 17.5F).light(0.875F).drops(() -> Item.getItemFromBlock(SoulFurnace), 1, 1), null);
-        GoldenSoulFurnace = b("GoldenSoulFurnace", (SWBlock) new SWBlock(Material.ROCK, SoundType.STONE).tex("SoulFurnace_top", "SoulFurnace_top", "GoldenSoulFurnace_front", "SoulFurnace_side", "SoulFurnace_side", "SoulFurnace_side").hr(3.5F, 17.5F));
-        ShadowChest = b("ShadowChest", (SWBlock) new SWBlock(Material.WOOD, SoundType.WOOD).tex("ShadowPlanks").bounds(0.0625, 0, 0.0625, 0.9375, 0.875, 0.9375).hr(2.5F, 12.5F));
-        ShadowChestTrapped = b("ShadowChestTrapped", (SWBlock) new SWBlock(Material.WOOD, SoundType.WOOD).tex("ShadowPlanks").bounds(0.0625, 0, 0.0625, 0.9375, 0.875, 0.9375).hr(2.5F, 12.5F));
-        Pedestal = b("Pedestal", (SWBlock) new SWBlock(Material.ROCK, SoundType.STONE).tex("Pedestal").bounds(0.125, 0, 0.125, 0.875, 0.75, 0.875).hr(2F, 10F).light(1F));
+        SoulFurnace = b("SoulFurnace", new com.electrifiedded.shadowworld.tile.SoulFurnaces.FurnaceBlock(false, false));
+        LitSoulFurnace = b("LitSoulFurnace", "SoulFurnace", new com.electrifiedded.shadowworld.tile.SoulFurnaces.FurnaceBlock(true, false), null);
+        GoldenSoulFurnace = b("GoldenSoulFurnace", new com.electrifiedded.shadowworld.tile.SoulFurnaces.FurnaceBlock(false, true));
+        net.minecraftforge.fml.common.registry.GameRegistry.registerTileEntity(com.electrifiedded.shadowworld.tile.SoulFurnaces.TileSoulFurnace.class, new net.minecraft.util.ResourceLocation("shadowworld", "soul_furnace"));
+        ShadowChest = b("ShadowChest", new com.electrifiedded.shadowworld.tile.SWChests.ChestBlock(com.electrifiedded.shadowworld.tile.SWChests.Kind.SHADOW));
+        ShadowChestTrapped = b("ShadowChestTrapped", new com.electrifiedded.shadowworld.tile.SWChests.ChestBlock(com.electrifiedded.shadowworld.tile.SWChests.Kind.SHADOW_TRAPPED));
+        Pedestal = b("Pedestal", new com.electrifiedded.shadowworld.tile.Pedestals.PedestalBlock());
+        net.minecraftforge.fml.common.registry.GameRegistry.registerTileEntity(com.electrifiedded.shadowworld.tile.Pedestals.TilePedestal.class, new net.minecraft.util.ResourceLocation("shadowworld", "pedestal"));
         AzuriteRune = b("AzuriteRune", "AzuriteRune", new SWBlock(Material.CIRCUITS, SoundType.GLASS).tex("AzuriteRune_cross").bounds(0, 0, 0, 1, 0.0625, 1).noCollide().cutout().light(0.25F).hr(0F, 0F).drops(() -> AzuriteShard, 1, 1), null);
         GlowStoneTorch = b("GlowStoneTorch", (SWBlock) new SWBlock(Material.CIRCUITS, SoundType.WOOD).tex("GlowStoneTorch").cross().light(1.0F).hr(0F, 0F));
         Shadowfield = b("Shadowfield", "Shadowfield", new Field().hr(1F, 10F), null);
@@ -235,15 +238,18 @@ public final class SWContent {
             @Override public net.minecraft.util.EnumBlockRenderType getRenderType(net.minecraft.block.state.IBlockState s) { return net.minecraft.util.EnumBlockRenderType.INVISIBLE; }
             @Override public boolean isReplaceable(net.minecraft.world.IBlockAccess w, net.minecraft.util.math.BlockPos p) { return true; }
         }.noCollide().light(0.5F).bounds(0, 0, 0, 0, 0, 0), null);
-        HangingNote = b("HangingNote", "HangingNote", new SWBlock(Material.CIRCUITS, SoundType.CLOTH).tex("HangingNote").bounds(0.125, 0.125, 0.875, 0.875, 0.875, 1).noCollide().cutout(), null);
-        Lamp = b("Lamp", (SWBlock) new SWBlock(Material.CIRCUITS, SoundType.GLASS).tex("Lamp").bounds(0.3125, 0, 0.3125, 0.6875, 0.5, 0.6875).light(1F).hr(0.3F, 0F));
+        HangingNote = b("HangingNote", "HangingNote", new com.electrifiedded.shadowworld.tile.SWNotes.HangingNoteBlock().hr(0F, 0F), null);
+        net.minecraftforge.fml.common.registry.GameRegistry.registerTileEntity(com.electrifiedded.shadowworld.tile.SWNotes.TileHangingNote.class, new net.minecraft.util.ResourceLocation("shadowworld", "hanging_note"));
+        Lamp = b("Lamp", new com.electrifiedded.shadowworld.tile.SWNotes.LampBlock());
+        net.minecraftforge.fml.common.registry.GameRegistry.registerTileEntity(com.electrifiedded.shadowworld.tile.SWNotes.TileLamp.class, new net.minecraft.util.ResourceLocation("shadowworld", "lamp"));
         GolemEye = b("GolemEye", (SWBlock) new SWBlock(Material.ROCK, SoundType.STONE).tex("GolemEye").hr(1F, 1F).light(0.1F));
         AngelBlock = b("AngelBock", "AngelBlock", new SWBlock(Material.ROCK, SoundType.STONE).tex("angel_block_bottom", "angel_block_top", "angel_block_side").hr(0.8F, 4F), ShadowBlocks);
         AngelStairs = b("AngelStairs", new Stairs(AngelBlock, "shadowworld:angel_block_side"));
         AngelDoubleSlab = b("AngelDoubleSlab", "AngelDoubleSlab", new DoubleSlab(Material.ROCK, SoundType.STONE, "angel_block_side", () -> AngelSingleSlab).hr(0.8F, 4F), null);
         AngelSingleSlab = b("AngelSingleSlab", new Slab(Material.ROCK, SoundType.STONE, "angel_block_side", () -> AngelDoubleSlab).hr(0.8F, 4F));
         MysticalLeaf = b("MysticalLeaf", new Leaves("MysticalLeaf", null).hr(1F, 1F));
-        AngelChest = b("AngelChest", (SWBlock) new SWBlock(Material.WOOD, SoundType.WOOD).tex("angel_block_side").bounds(0.0625, 0, 0.0625, 0.9375, 0.875, 0.9375).hr(2.5F, 12.5F));
+        AngelChest = b("AngelChest", new com.electrifiedded.shadowworld.tile.SWChests.ChestBlock(com.electrifiedded.shadowworld.tile.SWChests.Kind.ANGEL));
+        net.minecraftforge.fml.common.registry.GameRegistry.registerTileEntity(com.electrifiedded.shadowworld.tile.SWChests.TileSWChest.class, new net.minecraft.util.ResourceLocation("shadowworld", "sw_chest"));
         AngelPortal = b("AngelPortal", "AngelPortal", new SWBlock(Material.PORTAL, SoundType.GLASS).tex("AngelPortal").translucent().light(1F).unbreakable(), null);
     }
 
@@ -331,9 +337,9 @@ public final class SWContent {
         Controller = i("Controller", new ControllerStaff());
         Grower = i("Grower", new GrowerStaff());
         zombieslayer = i("zombieslayer", "zombieslayer", "ZombieSlayer", new ZombieSlayer(), ShadowItems);
-        DungeonFinder = i("DungeonFinder", new Simple().tooltip("Used to find Shadow Villages (not ported yet)"));
+        DungeonFinder = i("DungeonFinder", new com.electrifiedded.shadowworld.item.SWFinders.DungeonFinderItem());
         HellFlintAndSteel = i("HellFlintAndSteel", new Lighter(() -> HellFire));
-        ShadowCompass = i("ShadowCompass", "ShadowCompass", "ShadowCompass1", new Simple().tooltip("A special Compass"), ShadowItems);
+        ShadowCompass = i("ShadowCompass", "ShadowCompass", "ShadowCompass", new com.electrifiedded.shadowworld.item.SWFinders.ShadowCompassItem(), ShadowItems);
         CrossBow = i("CrossBow", "Crossbow", "Crossbow", new Crossbow(1), ShadowItems);
         FireCrossBow = i("FireCrossBow", "FireCrossbow", "FireCrossbow", new Crossbow(2), ShadowItems);
         PoisonousCrossBow = i("PoisonousCrossBow", "PoisonousCrossbow", "PoisonousCrossbow", new Crossbow(3), ShadowItems);
@@ -363,8 +369,8 @@ public final class SWContent {
             p.addPotionEffect(new PotionEffect(MobEffects.SPEED, 3600, 1));
         }).setAlwaysEdible().setMaxStackSize(1), ShadowItems);
         GlowBeanItem = i("GlowBeanItem", new Placer(() -> GlowBean, st -> st.getBlock() == ShadowLog || shadowSoil(st.getBlock())));
-        Diary = i("Diary", new Simple().tooltip("Diary GUI not ported yet").setMaxStackSize(1));
-        Note = i("Note", new Simple().tooltip("Note GUI not ported yet").setMaxStackSize(1));
+        Diary = i("Diary", new com.electrifiedded.shadowworld.tile.SWNotes.DiaryItem());
+        Note = i("Note", new com.electrifiedded.shadowworld.tile.SWNotes.NoteItem());
         BakedCookie = i("BakedCookie", new ItemFood(4, 0.5F, false).setMaxStackSize(16));
         SweetCookie = i("SweetCookie", new Food(2, 0.5F, false).onEaten((s, w, p) -> {
             p.addPotionEffect(new PotionEffect(MobEffects.SPEED, 600, 6));
@@ -386,7 +392,14 @@ public final class SWContent {
         EarthStone = i("EarthStone", new ElementStone(2));
         AirStone = i("AirStone", new ElementStone(3));
         ElementSphere = i("ElementSphere", new ElementStone(4));
-        FlyingBoat = i("FlyingBoat", new Simple().tooltip("Flying boat not ported yet").setMaxStackSize(1));
+        FlyingBoat = i("FlyingBoat", new Simple() {
+            @Override
+            public net.minecraft.util.ActionResult<ItemStack> onItemRightClick(net.minecraft.world.World w, net.minecraft.entity.player.EntityPlayer p, net.minecraft.util.EnumHand h) {
+                ItemStack s = p.getHeldItem(h);
+                com.electrifiedded.shadowworld.entity.EntityFlyingBoat.place(w, p, s);
+                return new net.minecraft.util.ActionResult<>(net.minecraft.util.EnumActionResult.SUCCESS, s);
+            }
+        }.rarity(EnumRarity.EPIC).setMaxStackSize(1));
     }
 
     static Entity unused(EntityLivingBase e) { return e; }

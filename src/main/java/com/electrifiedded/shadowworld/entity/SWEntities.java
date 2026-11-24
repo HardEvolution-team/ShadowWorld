@@ -390,19 +390,6 @@ public final class SWEntities {
 
     // ------------------------------------------------------------------ villagers
 
-    /** Dwarves / travelling dwarves / angel villagers: villager trading (vanilla trades, TODO original trade lists). */
-    public static class Dwarf extends EntityVillager {
-        public Dwarf(World w) { super(w); setSize(0.6F, 1.4F); }
-        @Override public EntityVillager createChild(EntityAgeable a) { return new Dwarf(world); }
-        @Override public boolean getCanSpawnHere() { return true; }
-        @Override public void onStruckByLightning(EntityLightningBolt b) {}
-    }
-
-    public static class TravellingDwarf extends Dwarf {
-        public TravellingDwarf(World w) { super(w); }
-        @Override public EntityVillager createChild(EntityAgeable a) { return new TravellingDwarf(world); }
-    }
-
     public static class AngelVillager extends EntityVillager {
         public AngelVillager(World w) { super(w); }
         @Override public EntityVillager createChild(EntityAgeable a) { return new AngelVillager(world); }

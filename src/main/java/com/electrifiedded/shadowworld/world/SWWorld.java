@@ -116,6 +116,7 @@ public final class SWWorld {
         @Override public DimensionType getDimensionType() { return SHADOW; }
         @Override public IChunkGenerator createChunkGenerator() {
             return new LegacyChunkGenerator(world, world.getSeed(), null)
+                    .structure(new SWVillage(), "Dungeon")
                     .substitute(Blocks.STONE, SWContent.ShadowStone.getDefaultState())
                     .substitute(Blocks.WATER, SWContent.quicksilverStill.getDefaultState())
                     .substitute(Blocks.FLOWING_WATER, SWContent.quicksilverStill.getDefaultState())
@@ -194,7 +195,7 @@ public final class SWWorld {
         if (!ok) return false;
         LegacyClassStructure s = structure(cls);
         if (s.size() == 0) return false;
-        s.place(w, x, top.getY() + yOff, z, 2, null);
+        s.place(w, x, top.getY() + yOff, z, 2, null, SWLoot.TILES);
         return true;
     }
 
@@ -256,11 +257,9 @@ public final class SWWorld {
             } else if (b == ShadowDeadForest) {
                 if (r.nextInt(rarity) == 0) place(w, r, "WorldGenPedestal", sx, sz, 0, grass);
             }
-            if (r.nextInt(rarity / 2) == 0) {
-                int y = 10 + r.nextInt(40);
-                LegacyClassStructure d = structure("WorldGenShadowDungeon");
-                if (d.size() > 0 && w.getBlockState(new BlockPos(sx, y, sz)).getBlock() == SWContent.ShadowStone) d.place(w, sx, y, sz, 2, null);
-            }
+            // ChunkProviderShadow.populate: 10 dungeon attempts per chunk at y 0..95
+            SWDungeon dungeon = new SWDungeon();
+            for (int i = 0; i < 10; i++) dungeon.generate(w, r, new BlockPos(x + r.nextInt(16), r.nextInt(96), z + r.nextInt(16)));
             for (int i = 0; i < 2; i++) {
                 Block f = r.nextInt(3) == 0 ? SWContent.ShadowFlower2 : (b == ShadowDeadForest ? SWContent.ShadowFlower3 : SWContent.ShadowFlower);
                 new SWTrees.Scatter(() -> f, 16).generate(w, r, w.getHeight(new BlockPos(x + r.nextInt(16), 0, z + r.nextInt(16))));
