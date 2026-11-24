@@ -8,7 +8,7 @@ import net.minecraft.util.math.MathHelper;
 import org.lwjgl.opengl.GL11;
 
 public class ModelGolem extends ModelBase {
-   Random random = new Random();
+   Random random = new com.electrifiedded.archaiclib.util.FastRandom();
    public ModelRenderer head;
    public ModelRenderer body;
    public ModelRenderer rightarm;

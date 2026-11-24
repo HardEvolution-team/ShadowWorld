@@ -82,7 +82,7 @@ public final class SWWorld {
                 .spawn(SWEntities.SkeletonSpider.class, 5, 4, 4).spawn(SWEntities.Light.class, 1, 1, 1).spawn(SWEntities.ShadowWolf.class, 5, 2, 2)
                 .spawn(SWEntities.ShadowPig.class, 5, 2, 2);
         ShadowJungle = new SWBiome("Shadow Jungle", 0.05F, 0.46F, () -> SWContent.ShadowGrass, () -> SWContent.ShadowDirt, 40, 5)
-                .tree(() -> new Random().nextInt(3) == 0 ? SWTrees.shadowJungle() : SWTrees.shadow(false))
+                .tree(() -> com.electrifiedded.archaiclib.util.FastRandom.shared().nextInt(3) == 0 ? SWTrees.shadowJungle() : SWTrees.shadow(false))
                 .spawn(SWEntities.Light.class, 1, 1, 1).spawn(SWEntities.Shadow.class, 6, 2, 4).spawn(SWEntities.Dragonfly.class, 5, 2, 4);
         ShadowDesert = new SWBiome("Shadow Desert", 0.075F, 0.175F, () -> SWContent.ShadowSand, () -> SWContent.ShadowSand, -999, 0)
                 .spawn(SWEntities.Light.class, 1, 1, 1).spawn(SWEntities.WolfSpider.class, 4, 3, 5);

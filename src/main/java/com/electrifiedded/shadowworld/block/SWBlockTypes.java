@@ -206,7 +206,7 @@ public final class SWBlockTypes {
             int m = s.getValue(META);
             drops.add(new ItemStack(SWContent.Soul));
             if (m >= 7) {
-                Random r = w instanceof World ? ((World) w).rand : new Random();
+                Random r = w instanceof World ? ((World) w).rand : new com.electrifiedded.archaiclib.util.FastRandom();
                 for (int i = 0; i < 3 + fortune; i++) if (r.nextInt(15) <= m) drops.add(new ItemStack(SWContent.Soul));
             }
         }

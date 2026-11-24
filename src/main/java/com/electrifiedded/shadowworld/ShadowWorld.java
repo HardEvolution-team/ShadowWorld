@@ -25,7 +25,7 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-@Mod(modid = Reference.MOD_ID, name = Reference.MOD_NAME, version = Reference.VERSION, dependencies = "required-after:archaiclib@[1.34.0,)")
+@Mod(modid = Reference.MOD_ID, name = Reference.MOD_NAME, version = Reference.VERSION, dependencies = "required-after:archaiclib@[1.40.0,)")
 public class ShadowWorld {
     public static final Logger LOG = LogManager.getLogger("ShadowWorld");
     public static final String ORIGINAL_NAME = "shadow_world_mod_1.7.10.jar - Shadow World 1.2.1 for 1.7.10 (by JaJo_11)";
