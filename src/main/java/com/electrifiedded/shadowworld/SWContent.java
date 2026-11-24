@@ -181,7 +181,7 @@ public final class SWContent {
         AzuriteRune = b("AzuriteRune", "AzuriteRune", new com.electrifiedded.shadowworld.block.SWBlocks2.Rune().light(0.25F).hr(0F, 0F).drops(() -> AzuriteShard, 1, 1), null);
         GlowStoneTorch = b("GlowStoneTorch", (SWBlock) new SWBlock(Material.CIRCUITS, SoundType.WOOD).tex("GlowStoneTorch").cross().light(1.0F).hr(0F, 0F));
         Shadowfield = b("Shadowfield", "Shadowfield", new Field().hr(1F, 10F), null);
-        ShadowFence = b("ShadowFence", (SWBlock) new SWBlock(Material.WOOD, SoundType.WOOD).tex("ShadowPlanks").bounds(0.375, 0, 0.375, 0.625, 1, 0.625).hr(5F, 1F));
+        ShadowFence = b("ShadowFence", new com.electrifiedded.shadowworld.block.SWBlocks2.Fence("ShadowPlanks").hr(5F, 1F));
         DwarvenLamp = basic("DwarvenLamp", Material.GLASS, SoundType.GLASS, 0.3F, 1.5F, "DwarvenLamp").light(1.0F);
         Soulstone = b("SoulStone", "Soulstone", new SWBlock(Material.ROCK, SoundType.STONE).tex("Soulstone").hr(5F, 1F).drops(() -> Soul, 1, 1), ShadowBlocks);
         AzuriteOre = b("AzuriteOre", "AzuriteOre", new SWBlock(Material.ROCK, SoundType.STONE).tex("Azurite").hr(5F, 1F).light(0.75F).drops(() -> Azurite, 1, 1), CreativeTabs.SEARCH);

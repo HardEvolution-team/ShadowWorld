@@ -110,6 +110,77 @@ public final class SWBlocks2 {
     }
 
     /** Shadow / Hell fire: burns entities, burns out unless it stands on a fire source; shadow fire lights the portal. */
+    /** 1.7 ShadowFence (BlockFence): post + two rails per connected side, 1.5-block-high collision. */
+    public static class Fence extends SWBlock {
+        static final net.minecraft.block.properties.PropertyBool W = net.minecraft.block.properties.PropertyBool.create("west"),
+                E = net.minecraft.block.properties.PropertyBool.create("east"), N = net.minecraft.block.properties.PropertyBool.create("north"),
+                S = net.minecraft.block.properties.PropertyBool.create("south");
+
+        public Fence(String tex) {
+            super(Material.WOOD, SoundType.WOOD);
+            tex(tex);
+            opaque = false;
+        }
+
+        @Override protected net.minecraft.block.state.BlockStateContainer createBlockState() { return new net.minecraft.block.state.BlockStateContainer(this, META, W, E, N, S); }
+
+        /** 1.7 canConnectFenceTo: another fence, a fence gate, or an opaque full cube (not a pumpkin). */
+        static boolean connects(IBlockAccess w, BlockPos p) {
+            IBlockState s = w.getBlockState(p);
+            Block b = s.getBlock();
+            if (b instanceof Fence || b instanceof net.minecraft.block.BlockFence || b instanceof net.minecraft.block.BlockFenceGate) return true;
+            return s.getMaterial().isOpaque() && s.isFullCube() && s.getMaterial() != Material.GOURD;
+        }
+
+        @Override
+        public IBlockState getActualState(IBlockState s, IBlockAccess w, BlockPos p) {
+            return s.withProperty(W, connects(w, p.west())).withProperty(E, connects(w, p.east())).withProperty(N, connects(w, p.north())).withProperty(S, connects(w, p.south()));
+        }
+
+        @Override
+        public AxisAlignedBB getBoundingBox(IBlockState s, IBlockAccess w, BlockPos p) {
+            s = getActualState(s, w, p);
+            return new AxisAlignedBB(s.getValue(W) ? 0 : 0.375, 0, s.getValue(N) ? 0 : 0.375, s.getValue(E) ? 1 : 0.625, 1, s.getValue(S) ? 1 : 0.625);
+        }
+
+        @Override
+        public void addCollisionBoxToList(IBlockState s, World w, BlockPos p, AxisAlignedBB box, List<AxisAlignedBB> out, @javax.annotation.Nullable Entity e, boolean actual) {
+            s = getActualState(s, w, p);
+            addCollisionBoxToList(p, box, out, new AxisAlignedBB(0.375, 0, 0.375, 0.625, 1.5, 0.625));
+            if (s.getValue(W)) addCollisionBoxToList(p, box, out, new AxisAlignedBB(0, 0, 0.375, 0.375, 1.5, 0.625));
+            if (s.getValue(E)) addCollisionBoxToList(p, box, out, new AxisAlignedBB(0.625, 0, 0.375, 1, 1.5, 0.625));
+            if (s.getValue(N)) addCollisionBoxToList(p, box, out, new AxisAlignedBB(0.375, 0, 0, 0.625, 1.5, 0.375));
+            if (s.getValue(S)) addCollisionBoxToList(p, box, out, new AxisAlignedBB(0.375, 0, 0.625, 0.625, 1.5, 1));
+        }
+
+        @Override public boolean isPassable(IBlockAccess w, BlockPos p) { return false; }
+        @Override public boolean canBeConnectedTo(IBlockAccess w, BlockPos p, EnumFacing f) { return true; }
+        @Override public net.minecraft.block.state.BlockFaceShape getBlockFaceShape(IBlockAccess w, IBlockState s, BlockPos p, EnumFacing f) {
+            return f.getAxis() == EnumFacing.Axis.Y ? net.minecraft.block.state.BlockFaceShape.CENTER : net.minecraft.block.state.BlockFaceShape.MIDDLE_POLE;
+        }
+
+        @Override
+        public int getArchaicRenderKey(IBlockState s) {
+            return (s.getValue(W) ? 1 : 0) | (s.getValue(E) ? 2 : 0) | (s.getValue(N) ? 4 : 0) | (s.getValue(S) ? 8 : 0);
+        }
+        @Override public int getArchaicItemRenderKey(int meta) { return 3; }
+
+        @Override
+        @SideOnly(Side.CLIENT)
+        public List<ArchaicRenderPart> getArchaicRenderParts(int key) {
+            if (icons == null || icons.length == 0) return null;
+            IIcon ic = icons[0];
+            List<ArchaicRenderPart> p = new ArrayList<>();
+            p.add(ArchaicRenderPart.box(0.375, 0, 0.375, 0.625, 1, 0.625, ic));
+            boolean w = (key & 1) != 0, e = (key & 2) != 0, n = (key & 4) != 0, s = (key & 8) != 0;
+            for (double[] y : new double[][]{{0.75, 0.9375}, {0.375, 0.5625}}) {
+                if (w || e) p.add(ArchaicRenderPart.box(w ? 0 : 0.4375, y[0], 0.4375, e ? 1 : 0.5625, y[1], 0.5625, ic));
+                if (n || s) p.add(ArchaicRenderPart.box(0.4375, y[0], n ? 0 : 0.4375, 0.5625, y[1], s ? 1 : 0.5625, ic));
+            }
+            return p;
+        }
+    }
+
     /** 1.7 AzuriteRune: redstone-wire-like flat rune (AzuriteRuneRenderingHandler); animated when part of a pedestal circle. */
     public static class Rune extends SWBlock {
         static final net.minecraft.block.properties.PropertyBool W = net.minecraft.block.properties.PropertyBool.create("west"),
