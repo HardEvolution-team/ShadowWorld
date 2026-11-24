@@ -337,7 +337,7 @@ public final class SWDwarves {
         @Override public BlockPos getPos() { return new BlockPos(this); }
         @Override public ITextComponent getDisplayName() { return hasCustomName() ? super.getDisplayName() : new TextComponentString("Dwarf"); }
 
-        private float adjustProbability(float p) {
+        protected float adjustProbability(float p) {
             float f = p + field_82191_bN;
             return f > 0.9F ? 0.9F - (f - 0.9F) : f;
         }
@@ -345,6 +345,14 @@ public final class SWDwarves {
         private void addDefaultEquipmentAndRecipies(int count) {
             field_82191_bN = buyingList != null ? MathHelper.sqrt(buyingList.size()) * 0.2F : 0.0F;
             MerchantRecipeList l = new MerchantRecipeList();
+            offers(l);
+            Collections.shuffle(l);
+            if (buyingList == null) buyingList = new MerchantRecipeList();
+            for (int i = 0; i < count && i < l.size(); i++) addToListWithCheck(buyingList, l.get(i));
+        }
+
+        /** Profession offers (overridden by the Angel villager). */
+        protected void offers(MerchantRecipeList l) {
             switch (getProfession()) {
                 case 0 -> {
                     addMerchantItem(l, SWContent.Soul, rand, adjustProbability(0.5F));
@@ -388,9 +396,6 @@ public final class SWDwarves {
                 default -> {}
             }
             if (l.isEmpty()) addBlacksmithItem(l, SWContent.Azurite, rand, 1.0F);
-            Collections.shuffle(l);
-            if (buyingList == null) buyingList = new MerchantRecipeList();
-            for (int i = 0; i < count && i < l.size(); i++) addToListWithCheck(buyingList, l.get(i));
         }
 
         /** 1.7 MerchantRecipe.hasSameIDsAs / hasSameItemsAs. */
@@ -417,9 +422,11 @@ public final class SWDwarves {
             list.add(r);
         }
 
-        public static void addMerchantItem(MerchantRecipeList list, Item item, Random r, float chance) {
+        public static void addMerchantItem(MerchantRecipeList list, Item item, Random r, float chance) { addMerchantItem(list, item, r, chance, villagerStockList); }
+
+        public static void addMerchantItem(MerchantRecipeList list, Item item, Random r, float chance, Map<Object, int[]> stock) {
             if (r.nextFloat() >= chance) return;
-            int j = count(villagerStockList.get(item), r);
+            int j = count(stock.get(item), r);
             ItemStack coin, goods;
             if (j < 0) {
                 coin = new ItemStack(SWContent.ShadowCoin, -j);
@@ -431,9 +438,11 @@ public final class SWDwarves {
             list.add(new MerchantRecipe(goods, coin));
         }
 
-        public static void addBlacksmithItem(MerchantRecipeList list, Item item, Random r, float chance) {
+        public static void addBlacksmithItem(MerchantRecipeList list, Item item, Random r, float chance) { addBlacksmithItem(list, item, r, chance, blacksmithSellingList); }
+
+        public static void addBlacksmithItem(MerchantRecipeList list, Item item, Random r, float chance, Map<Item, int[]> sell) {
             if (r.nextFloat() >= chance) return;
-            int j = count(blacksmithSellingList.get(item), r);
+            int j = count(sell.get(item), r);
             ItemStack coin, goods;
             if (j < 0) {
                 coin = new ItemStack(SWContent.ShadowCoin);

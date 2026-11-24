@@ -2,6 +2,7 @@ package com.electrifiedded.shadowworld.client;
 
 import com.electrifiedded.archaiclib.legacy.sound.LegacyModSounds;
 import com.electrifiedded.shadowworld.entity.SWEntities;
+import com.electrifiedded.shadowworld.entity.SWAngels;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.client.audio.SoundHandler;
@@ -203,7 +204,7 @@ public class GuiDiary extends GuiScreen {
         if (currPage != 0 && type == 3 && entity != null) {
             if (!Mouse.isButtonDown(1) && !Mouse.isButtonDown(0) && !Mouse.isButtonDown(2)) rotationy++;
             entity.onGround = true;
-            boolean big = entity instanceof SWEntities.Angel || entity instanceof SWEntities.ShadowWolfKing
+            boolean big = entity instanceof SWAngels.Angel || entity instanceof SWEntities.ShadowWolfKing
                     || entity instanceof SWEntities.ShadowSlime sl && sl.getSlimeSize() >= 5;
             DiaryToast.renderEntity(k + 190, b0 + 128, big ? size : size + 10, rotationy, rotationx, entity, true);
             if (Math.abs(rotationx) >= 360) rotationx = 0;

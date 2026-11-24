@@ -1,6 +1,7 @@
 package com.electrifiedded.shadowworld;
 
 import com.electrifiedded.shadowworld.entity.SWEntities;
+import com.electrifiedded.shadowworld.entity.SWAngels;
 import net.minecraft.block.Block;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
@@ -96,7 +97,7 @@ public class SWEvents {
         else if (e instanceof SWEntities.JellyFish) SWDiary.add(p, "I found a \"Jelly Fish\". It's glowing and swimming in poisonous quicksilver. I think it's useful for something...", "Jelly Fish", null, e);
         else if (e instanceof SWEntities.Dragonfly) SWDiary.add(p, "It's a giant dragonfly! It looks nice, but it doesn't seems to be useful...", "Shadow Dragonfly", null, e);
         else if (e instanceof SWEntities.ExplodingWolf) SWDiary.add(p, "This wolf looks a bit strange. It's eyes have the color of a Creeper...", "Strange Wolf", null, e);
-        else if (e instanceof SWEntities.Angel) SWDiary.add(p, "An Angel! But it looks angry. I think he'll attack me...", "Angel", null, e);
+        else if (e instanceof SWAngels.Angel) SWDiary.add(p, "An Angel! But it looks angry. I think he'll attack me...", "Angel", null, e);
         else if (e instanceof SWEntities.ShadowCreeper) SWDiary.add(p, "I found a Creeper. It has an unusual color, but I'm sure it's a Creeper. And all Creepers are dangerous...", "Shadow Creeper", null, e);
     }
 

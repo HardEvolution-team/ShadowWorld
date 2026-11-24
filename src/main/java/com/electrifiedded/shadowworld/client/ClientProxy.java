@@ -108,7 +108,7 @@ public class ClientProxy extends CommonProxy {
         RenderingRegistry.registerEntityRenderingHandler(WaterGolem.class, living(new ModelGolem(), 1.0F, "WaterGolem", 1F));
         RenderingRegistry.registerEntityRenderingHandler(AirGolem.class, living(new ModelGolem(), 1.0F, "AirGolem", 1F));
         RenderingRegistry.registerEntityRenderingHandler(ShadowWolfKing.class, living(new ModelShadowWolfKing(), 1.0F, "ShadowWolfKing", 1F));
-        RenderingRegistry.registerEntityRenderingHandler(Angel.class, living(new ModelAngel(0.0F), 0.5F, "Angel", 1F));
+        RenderingRegistry.registerEntityRenderingHandler(com.electrifiedded.shadowworld.entity.SWAngels.Angel.class, AngelRenderers.AngelRender::new);
         RenderingRegistry.registerEntityRenderingHandler(com.electrifiedded.shadowworld.entity.SWDwarves.Dwarf.class, m -> new RenderBiped<com.electrifiedded.shadowworld.entity.SWDwarves.Dwarf>(m, new ModelBiped(0.0F), 0.5F) {
             { addLayer(new net.minecraft.client.renderer.entity.layers.LayerBipedArmor(this)); }
             @Override protected ResourceLocation getEntityTexture(com.electrifiedded.shadowworld.entity.SWDwarves.Dwarf e) {
@@ -122,7 +122,9 @@ public class ClientProxy extends CommonProxy {
             @Override protected ResourceLocation getEntityTexture(com.electrifiedded.shadowworld.entity.SWDwarves.TravellingDwarf e) { return tex("TravellingDwarf"); }
             @Override protected void preRenderCallback(com.electrifiedded.shadowworld.entity.SWDwarves.TravellingDwarf e, float pt) { GlStateManager.scale(0.8F, 0.8F, 0.8F); }
         });
-        RenderingRegistry.registerEntityRenderingHandler(AngelVillager.class, living(new ModelBiped(), 0.5F, "Angel1", 1F));
+        RenderingRegistry.registerEntityRenderingHandler(com.electrifiedded.shadowworld.entity.SWAngels.AngelVillager.class, AngelRenderers.VillagerRender::new);
+        RenderingRegistry.registerEntityRenderingHandler(com.electrifiedded.shadowworld.tile.AngelPortals.EntityFalling.class, AngelRenderers.FallingRenderer::new);
+        net.minecraftforge.fml.client.registry.ClientRegistry.bindTileEntitySpecialRenderer(com.electrifiedded.shadowworld.tile.AngelPortals.TilePortal.class, new AngelRenderers.PortalRenderer());
         RenderingRegistry.registerEntityRenderingHandler(EntityElementStone.class, m -> new RenderSnowball<EntityElementStone>(m, SWContent.FireStone, Minecraft.getMinecraft().getRenderItem()) {
             @Override public net.minecraft.item.ItemStack getStackToRender(EntityElementStone e) {
                 Item it = switch (e.getType()) { case 0 -> SWContent.FireStone; case 1 -> SWContent.WaterStone; case 2 -> SWContent.EarthStone; case 3 -> SWContent.AirStone; default -> SWContent.ElementSphere; };
@@ -132,6 +134,8 @@ public class ClientProxy extends CommonProxy {
     }
 
     @Override public void openTravellingDwarf(com.electrifiedded.shadowworld.entity.SWDwarves.TravellingDwarf d) { Minecraft.getMinecraft().displayGuiScreen(new GuiTravellingDwarf(d)); }
+
+    @Override public net.minecraftforge.client.IRenderHandler angelSky() { return new AngelRenderers.Sky(); }
 
     @Override public void scheduleClient(Runnable r) { Minecraft.getMinecraft().addScheduledTask(r); }
 

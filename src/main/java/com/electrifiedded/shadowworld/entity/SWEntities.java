@@ -366,36 +366,5 @@ public final class SWEntities {
         @Override protected void dropFewItems(boolean hit, int looting) { dropItem(SWContent.GoldenSoul, 1); }
     }
 
-    /** Angel boss: lightning strikes, drops angel feathers. */
-    public static class Angel extends Boss {
-        public Angel(World w) { super(w, BossInfo.Color.WHITE); setSize(1.5F, 2.5F); }
-        @Override protected void applyEntityAttributes() {
-            super.applyEntityAttributes();
-            getEntityAttribute(SharedMonsterAttributes.ATTACK_DAMAGE).setBaseValue(8.0);
-            getEntityAttribute(SharedMonsterAttributes.FOLLOW_RANGE).setBaseValue(40.0);
-            getEntityAttribute(SharedMonsterAttributes.KNOCKBACK_RESISTANCE).setBaseValue(1.0);
-            getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(200.0);
-            getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.34);
-        }
-        @Override public void fall(float d, float m) {}
-        @Override public void onLivingUpdate() {
-            super.onLivingUpdate();
-            if (!onGround && motionY < 0) motionY *= 0.6;
-            EntityLivingBase t = getAttackTarget();
-            if (!world.isRemote && t != null && ticksExisted % 100 == 0 && getDistanceSq(t) < 600)
-                world.addWeatherEffect(new EntityLightningBolt(world, t.posX, t.posY, t.posZ, false));
-        }
-        @Override protected void dropFewItems(boolean hit, int looting) { dropItem(SWContent.AngelFeather, 2 + rand.nextInt(3 + looting)); }
-    }
-
-    // ------------------------------------------------------------------ villagers
-
-    public static class AngelVillager extends EntityVillager {
-        public AngelVillager(World w) { super(w); }
-        @Override public EntityVillager createChild(EntityAgeable a) { return new AngelVillager(world); }
-        @Override public void onStruckByLightning(EntityLightningBolt b) {}
-        @Override public void fall(float d, float m) {}
-    }
-
     @Nullable static BlockPos none() { return null; }
 }

@@ -6,6 +6,7 @@ import com.electrifiedded.archaiclib.crafting.LegacyCraftingContainer;
 import com.electrifiedded.shadowworld.block.SWBlocks2;
 import com.electrifiedded.shadowworld.entity.EntityElementStone;
 import com.electrifiedded.shadowworld.entity.SWEntities;
+import com.electrifiedded.shadowworld.entity.SWAngels;
 import com.electrifiedded.shadowworld.world.SWWorld;
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
@@ -58,6 +59,8 @@ public class ShadowWorld {
         SWWorld.COOKIE = DimensionType.register("cookie_world", "_cookieworld", SWContent.cookieDim(), SWWorld.CookieProvider.class, false);
         DimensionManager.registerDimension(SWContent.shadowDim(), SWWorld.SHADOW);
         DimensionManager.registerDimension(SWContent.cookieDim(), SWWorld.COOKIE);
+        com.electrifiedded.shadowworld.world.SWAngelWorld.ANGEL = DimensionType.register("angel_world", "_angelworld", com.electrifiedded.shadowworld.world.SWAngelWorld.angelDim(), com.electrifiedded.shadowworld.world.SWAngelWorld.AngelProvider.class, false);
+        DimensionManager.registerDimension(com.electrifiedded.shadowworld.world.SWAngelWorld.angelDim(), com.electrifiedded.shadowworld.world.SWAngelWorld.ANGEL);
         GameRegistry.registerWorldGenerator(new SWWorld.Gen(), 100);
         NetworkRegistry.INSTANCE.registerGuiHandler(this, new Gui());
         proxy.preInit();
@@ -96,13 +99,13 @@ public class ShadowWorld {
         LegacyGameRegistry.registerModEntity(SWEntities.JellyFish.class, "JellyFish", id++, this, 64, 3, true, 13615741, 14534269);
         LegacyGameRegistry.registerModEntity(SWEntities.Dragonfly.class, "ShadowDragonfly", id++, this, 64, 3, true, 3014451, 0);
         LegacyGameRegistry.registerModEntity(com.electrifiedded.shadowworld.entity.SWDwarves.Dwarf.class, "Dwarf", id++, this, 64, 3, true, 11035942, 14200196);
-        LegacyGameRegistry.registerModEntity(SWEntities.Angel.class, "Angel", id++, this, 80, 3, true, 12771552, 14869218);
+        LegacyGameRegistry.registerModEntity(SWAngels.Angel.class, "Angel", id++, this, 80, 3, true, 12771552, 14869218);
         LegacyGameRegistry.registerModEntity(SWEntities.ShadowPig.class, "ShadowPig", id++, this, 64, 3, true, 1977932, 1450300);
         LegacyGameRegistry.registerModEntity(SWEntities.CookieSlime.class, "CookieSlime", id++, this, 64, 3, true, 15175746, 5713690);
         LegacyGameRegistry.registerModEntity(SWEntities.ShadowCreeper.class, "ShadowCreeper", id++, this, 64, 3, true, 3546880, 3288620);
         LegacyGameRegistry.registerModEntity(SWEntities.ExplodingWolf.class, "ExplodingWolf", id++, this, 64, 3, true, 10000001, 6881082);
         LegacyGameRegistry.registerModEntity(com.electrifiedded.shadowworld.entity.SWDwarves.TravellingDwarf.class, "TravellingDwarf", id++, this, 64, 3, true, 11035942, 14200196);
-        LegacyGameRegistry.registerModEntity(SWEntities.AngelVillager.class, "AngelVillager", id++, this, 64, 3, true, 12771552, 14869218);
+        LegacyGameRegistry.registerModEntity(SWAngels.AngelVillager.class, "AngelVillager", id++, this, 64, 3, true, 12771552, 14869218);
         LegacyGameRegistry.registerModEntity(SWEntities.FireGolem.class, "FireGolem", id++, this, 64, 3, true, 0xC03000, 0x401000);
         LegacyGameRegistry.registerModEntity(SWEntities.EarthGolem.class, "EarthGolem", id++, this, 64, 3, true, 0x6A4A2A, 0x303030);
         LegacyGameRegistry.registerModEntity(SWEntities.WaterGolem.class, "WaterGolem", id++, this, 64, 3, true, 0x2040C0, 0x102060);
@@ -110,6 +113,7 @@ public class ShadowWorld {
         LegacyGameRegistry.registerModEntity(EntityElementStone.class, "ElementStone", id++, this, 64, 5, true);
         LegacyGameRegistry.registerModEntity(com.electrifiedded.shadowworld.entity.EntityFlyingBoat.class, "FlyingBoat", id++, this, 128, 1, true);
         LegacyGameRegistry.registerModEntity(com.electrifiedded.shadowworld.item.SWFinders.EntityDungeonFinder.class, "DungoenFinder", id++, this, 64, 5, true);
+        LegacyGameRegistry.registerModEntity(com.electrifiedded.shadowworld.tile.AngelPortals.EntityFalling.class, "FallingAngelPortal", id++, this, 128, 1, true);
     }
 
     /** 0 = Shadow Workbench (3x3, vanilla recipes), 1 = Shadow Workbench+ (5x5, shadow recipes). */

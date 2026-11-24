@@ -12,5 +12,6 @@ public class CommonProxy {
     public void setBrightnessFlag(boolean on) {}
     public void shadowParticles(net.minecraft.entity.player.EntityPlayer p) {}
     public void spawnParticle(String name, double x, double y, double z, double mx, double my, double mz) {}
+    public net.minecraftforge.client.IRenderHandler angelSky() { return null; }
     public Object craftingGui(LegacyCraftingContainer c, boolean plus) { return null; }
 }

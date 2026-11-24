@@ -110,6 +110,27 @@ public final class SWBlocks2 {
     }
 
     /** Shadow / Hell fire: burns entities, burns out unless it stands on a fire source; shadow fire lights the portal. */
+    /** 1.7 AngelBlock = BlockQuartz with angel textures: 0 plain, 1 chiseled, 2/3/4 pillar (Y/X/Z). */
+    public static class AngelQuartz extends SWBlock {
+        public AngelQuartz() {
+            super(Material.ROCK, SoundType.STONE);
+            tex("angel_block_bottom", "angel_block_top", "angel_block_side", "angel_block_chiseled_top", "angel_block_chiseled", "angel_block_lines_top", "angel_block_lines");
+        }
+        @Override
+        @net.minecraftforge.fml.relauncher.SideOnly(net.minecraftforge.fml.relauncher.Side.CLIENT)
+        public com.electrifiedded.archaiclib.v1710.api.client.IIcon getIcon(int side, int meta) {
+            if (icons == null || icons.length < 7) return super.getIcon(side, meta);
+            return switch (meta) {
+                case 1 -> icons[side <= 1 ? 3 : 4];
+                case 2 -> icons[side <= 1 ? 5 : 6];
+                case 3 -> icons[side >= 4 ? 5 : 6];
+                case 4 -> icons[side == 2 || side == 3 ? 5 : 6];
+                default -> icons[side == 0 ? 0 : side == 1 ? 1 : 2];
+            };
+        }
+        @Override public int damageDropped(IBlockState s) { int m = getMetaFromState(s); return m >= 2 ? 2 : m; }
+    }
+
     public static class Fire extends SWBlock {
         private final boolean shadow;
         public Fire(boolean shadow, String tex) {
@@ -139,6 +160,19 @@ public final class SWBlocks2 {
         }
         @Override public void neighborChanged(IBlockState s, World w, BlockPos p, Block b, BlockPos f) { if (!canPlaceBlockAt(w, p)) w.setBlockToAir(p); }
         @Override public void onEntityCollision(World w, BlockPos p, IBlockState s, Entity e) {
+            // HellFire: a Shadow Crystal thrown into it summons the Angel (1.7 HellFire.onEntityCollidedWithBlock)
+            if (!shadow && e instanceof net.minecraft.entity.item.EntityItem ei && ei.getItem().getItem() == com.electrifiedded.shadowworld.SWContent.ShadowCrystal
+                    && w.isAirBlock(p.up()) && !w.isRemote && !e.isDead) {
+                e.setDead();
+                w.setBlockToAir(p);
+                w.playSound(null, e.posX, e.posY, e.posZ, net.minecraft.init.SoundEvents.ENTITY_FIREWORK_LAUNCH, net.minecraft.util.SoundCategory.HOSTILE, 3.0F, 1.0F);
+                com.electrifiedded.shadowworld.entity.SWAngels.Angel angel = new com.electrifiedded.shadowworld.entity.SWAngels.Angel(w);
+                angel.setPosition(p.getX(), p.getY(), p.getZ());
+                w.spawnEntity(angel);
+                w.createExplosion(angel, p.getX(), p.getY(), p.getZ(), 15.0F, true);
+                return;
+            }
+            if (e instanceof com.electrifiedded.shadowworld.entity.SWAngels.Angel) return;
             e.setFire(shadow ? 4 : 8);
             if (!shadow) e.attackEntityFrom(net.minecraft.util.DamageSource.IN_FIRE, 2F);
         }

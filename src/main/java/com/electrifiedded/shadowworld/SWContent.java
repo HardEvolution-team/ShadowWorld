@@ -243,14 +243,15 @@ public final class SWContent {
         Lamp = b("Lamp", new com.electrifiedded.shadowworld.tile.SWNotes.LampBlock());
         net.minecraftforge.fml.common.registry.GameRegistry.registerTileEntity(com.electrifiedded.shadowworld.tile.SWNotes.TileLamp.class, new net.minecraft.util.ResourceLocation("shadowworld", "lamp"));
         GolemEye = b("GolemEye", (SWBlock) new SWBlock(Material.ROCK, SoundType.STONE).tex("GolemEye").hr(1F, 1F).light(0.1F));
-        AngelBlock = b("AngelBock", "AngelBlock", new SWBlock(Material.ROCK, SoundType.STONE).tex("angel_block_bottom", "angel_block_top", "angel_block_side").hr(0.8F, 4F), ShadowBlocks);
+        AngelBlock = b("AngelBock", "AngelBlock", new com.electrifiedded.shadowworld.block.SWBlocks2.AngelQuartz().hr(0.8F, 4F), ShadowBlocks);
         AngelStairs = b("AngelStairs", new Stairs(AngelBlock, "shadowworld:angel_block_side"));
         AngelDoubleSlab = b("AngelDoubleSlab", "AngelDoubleSlab", new DoubleSlab(Material.ROCK, SoundType.STONE, "angel_block_side", () -> AngelSingleSlab).hr(0.8F, 4F), null);
         AngelSingleSlab = b("AngelSingleSlab", new Slab(Material.ROCK, SoundType.STONE, "angel_block_side", () -> AngelDoubleSlab).hr(0.8F, 4F));
         MysticalLeaf = b("MysticalLeaf", new Leaves("MysticalLeaf", null).hr(1F, 1F));
         AngelChest = b("AngelChest", new com.electrifiedded.shadowworld.tile.SWChests.ChestBlock(com.electrifiedded.shadowworld.tile.SWChests.Kind.ANGEL));
         net.minecraftforge.fml.common.registry.GameRegistry.registerTileEntity(com.electrifiedded.shadowworld.tile.SWChests.TileSWChest.class, new net.minecraft.util.ResourceLocation("shadowworld", "sw_chest"));
-        AngelPortal = b("AngelPortal", "AngelPortal", new SWBlock(Material.PORTAL, SoundType.GLASS).tex("AngelPortal").translucent().light(1F).unbreakable(), null);
+        AngelPortal = b("AngelPortal", "AngelPortal", new com.electrifiedded.shadowworld.tile.AngelPortals.PortalBlock(), null);
+        net.minecraftforge.fml.common.registry.GameRegistry.registerTileEntity(com.electrifiedded.shadowworld.tile.AngelPortals.TilePortal.class, new net.minecraft.util.ResourceLocation("shadowworld", "angel_portal"));
     }
 
     public static boolean shadowSoil(Block b) { return b == ShadowGrass || b == ShadowDirt || b == Shadowfield; }

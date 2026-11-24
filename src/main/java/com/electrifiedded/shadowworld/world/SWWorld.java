@@ -103,6 +103,7 @@ public final class SWWorld {
         String[] names = {"shadow_forest", "shadow_jungle", "shadow_desert", "shadow_hills", "shadow_plains", "shadow_ocean", "dead_forest", "shadow_river", "cookie_world"};
         Biome[] all = {ShadowBiome, ShadowJungle, ShadowDesert, ShadowHills, ShadowPlains, ShadowOcean, ShadowDeadForest, ShadowRiver, CookieBiome};
         for (int i = 0; i < all.length; i++) reg.register(all[i].setRegistryName(Reference.MOD_ID, names[i]));
+        SWAngelWorld.registerBiome(reg);
     }
 
     // ------------------------------------------------------------------ providers
@@ -165,7 +166,7 @@ public final class SWWorld {
     private static final Map<String, LegacyClassStructure> CACHE = new HashMap<>();
 
     /** GETSTATIC jajo_11/ShadowWorld/ShadowWorld.X -> SWContent.X */
-    private static Block resolve(String owner, String name) {
+    static Block resolveBlock(String owner, String name) {
         if (!owner.equals("jajo_11/ShadowWorld/ShadowWorld")) return null;
         try {
             Field f = SWContent.class.getField(name);
@@ -179,7 +180,7 @@ public final class SWWorld {
     public static synchronized LegacyClassStructure structure(String cls) {
         return CACHE.computeIfAbsent(cls, c -> {
             byte[] bytes = OriginalModAssets.readOriginal(Reference.MOD_ID, STRUCT + c + ".class");
-            LegacyClassStructure s = LegacyClassStructure.load(bytes, SWWorld::resolve);
+            LegacyClassStructure s = LegacyClassStructure.load(bytes, SWWorld::resolveBlock);
             ShadowWorld.LOG.info("Structure {}: {} blocks ({} unresolved)", c, s.size(), s.unresolved);
             return s;
         });
