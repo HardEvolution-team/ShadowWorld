@@ -337,39 +337,114 @@ public final class SWEntities {
         }
     }
 
-    /** Desert boss: shoots fireballs and calls shadow wolves. Drops a golden soul. */
+    /** 1.7 EntityShadowWolfKing: fireball every 60 ticks, super attack (howl, 10 angry shadow wolves + explosions), dragon-like death. */
     public static class ShadowWolfKing extends Boss {
-        public ShadowWolfKing(World w) { super(w, BossInfo.Color.PURPLE); setSize(1.75F, 1.75F); isImmuneToFire = true; }
+        public int deathTicks, superattacktime, attackCounter;
+
+        public ShadowWolfKing(World w) { super(w, BossInfo.Color.PURPLE); setSize(1.75F, 1.75F); isImmuneToFire = true; stepHeight = 2.0F; experienceValue = 0; }
+
+        @Override protected void initEntityAI() {
+            tasks.addTask(0, new EntityAIWatchClosest(this, EntityPlayer.class, 8.0F));
+            tasks.addTask(1, new EntityAIAttackMelee(this, 1.0, true));
+            tasks.addTask(2, new EntityAIWander(this, 1.0));
+            tasks.addTask(3, new EntityAILookIdle(this));
+            targetTasks.addTask(0, new EntityAINearestAttackableTarget<>(this, EntityPlayer.class, false));
+            targetTasks.addTask(1, new EntityAIHurtByTarget(this, false));
+        }
+
         @Override protected void applyEntityAttributes() {
             super.applyEntityAttributes();
-            getEntityAttribute(SharedMonsterAttributes.ATTACK_DAMAGE).setBaseValue(4.0);
-            getEntityAttribute(SharedMonsterAttributes.FOLLOW_RANGE).setBaseValue(40.0);
             getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(200.0);
             getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.34);
+            getEntityAttribute(SharedMonsterAttributes.FOLLOW_RANGE).setBaseValue(40.0);
+            getEntityAttribute(SharedMonsterAttributes.ATTACK_DAMAGE).setBaseValue(4.0);
         }
-        @Override public void onLivingUpdate() {
-            super.onLivingUpdate();
-            EntityLivingBase t = getAttackTarget();
-            if (world.isRemote || t == null) return;
-            if (ticksExisted % 40 == 0 && getDistanceSq(t) < 400) {
-                double dx = t.posX - posX, dy = t.getEntityBoundingBox().minY + t.height / 2 - (posY + height / 2), dz = t.posZ - posZ;
-                EntitySmallFireball f = new EntitySmallFireball(world, this, dx, dy, dz);
-                f.posY = posY + height / 2 + 0.5;
-                world.spawnEntity(f);
-            }
-            if (ticksExisted % 300 == 0 && rand.nextInt(2) == 0) {
-                ShadowWolf w = new ShadowWolf(world);
-                w.setLocationAndAngles(posX + rand.nextInt(5) - 2, posY, posZ + rand.nextInt(5) - 2, 0, 0);
-                w.setAngry(true);
-                w.setAttackTarget(t);
-                world.spawnEntity(w);
-            }
-        }
+
+        @Override protected void jump() { super.jump(); motionY += 4.0; }
+        @Override public void setInWeb() {}
+        @Override public int getTotalArmorValue() { return 4; }
+        @Override public void addPotionEffect(PotionEffect e) {}
+        @Override public EnumCreatureAttribute getCreatureAttribute() { return EnumCreatureAttribute.UNDEFINED; }
         @Override protected SoundEvent getAmbientSound() { return SoundEvents.ENTITY_WOLF_GROWL; }
         @Override protected SoundEvent getHurtSound(DamageSource d) { return SoundEvents.ENTITY_WOLF_HURT; }
         @Override protected SoundEvent getDeathSound() { return SoundEvents.ENTITY_WOLF_DEATH; }
+        @Override protected float getSoundVolume() { return 20.0F; }
         @Override protected float getSoundPitch() { return 0.5F; }
-        @Override protected void dropFewItems(boolean hit, int looting) { dropItem(SWContent.GoldenSoul, 1); }
+        @Override public boolean canAttackClass(Class<? extends EntityLivingBase> c) { return c != SWAngels.Angel.class && super.canAttackClass(c); }
+
+        @Override protected void updateAITasks() {
+            super.updateAITasks();
+            if (ticksExisted % 100 == 0 && getHealth() < 100.0F) heal(5.0F);
+            superattacktime++;
+            EntityLivingBase t = getAttackTarget();
+            if (t == null) t = world.getNearestAttackablePlayer(this, 16.0, 16.0);
+            if (superattacktime > 525) {
+                motionX = motionY = motionZ = 0.0;
+                if (superattacktime > 550) {
+                    playSound(SoundEvents.ENTITY_WOLF_HOWL, getSoundVolume(), 0.5F);
+                    for (int i = 0; i < 10; i++) {
+                        int x = (int) posX + rand.nextInt(50) - 25, y = (int) posY + 5, z = (int) posZ + rand.nextInt(50) - 25;
+                        if (!world.isAirBlock(new BlockPos(x, y, z))) world.createExplosion(this, x, y, z, 5.0F, true);
+                        ShadowWolf wolf = new ShadowWolf(world);
+                        wolf.setAngry(true);
+                        wolf.setPosition(x, y, z);
+                        wolf.setAttackTarget(t);
+                        world.spawnEntity(wolf);
+                        if (world instanceof net.minecraft.world.WorldServer ws)
+                            ws.spawnParticle(EnumParticleTypes.SMOKE_LARGE, x + 0.5, y - 0.5, z + 0.5, 60, 0.4, 1.2, 0.4, 0.0);
+                    }
+                    superattacktime = -100;
+                }
+            }
+            if (t != null && t.getDistanceSq(this) < 64.0 * 64.0) {
+                double d5 = t.posX - posX, d6 = t.getEntityBoundingBox().minY + t.height / 2.0F - (posY + height / 2.0F), d7 = t.posZ - posZ;
+                renderYawOffset = rotationYaw = -((float) Math.atan2(d5, d7)) * 180.0F / (float) Math.PI;
+                if (canEntityBeSeen(t) && deathTicks == 0) {
+                    if (++attackCounter == 20) {
+                        world.playEvent(null, 1018, new BlockPos(this), 0);
+                        EntitySmallFireball f = new EntitySmallFireball(world, this, d5, d6, d7);
+                        net.minecraft.util.math.Vec3d look = getLook(1.0F);
+                        f.posX = posX + look.x;
+                        f.posY = posY + height / 2.0F + 0.5;
+                        f.posZ = posZ + look.z;
+                        world.spawnEntity(f);
+                        attackCounter = -40;
+                    }
+                } else if (attackCounter > 0) attackCounter--;
+            } else if (attackCounter > 0) attackCounter--;
+        }
+
+        @Override protected void onDeathUpdate() {
+            deathTicks++;
+            superattacktime = -999;
+            float f = (rand.nextFloat() - 0.5F) * 8.0F, f1 = (rand.nextFloat() - 0.5F) * 4.0F, f2 = (rand.nextFloat() - 0.5F) * 8.0F;
+            if (deathTicks >= 180 && deathTicks <= 200) {
+                world.spawnParticle(EnumParticleTypes.EXPLOSION_HUGE, posX + f, posY + 2.0 + f1, posZ + f2, 0.0, 0.0, 0.0);
+                if (!world.isRemote) world.createExplosion(this, posX, posY, posZ, 15.0F, false);
+            }
+            if (!world.isRemote) {
+                if (deathTicks > 150 && deathTicks % 5 == 0) xp(1000);
+                if (deathTicks == 1) world.playBroadcastSound(1028, new BlockPos(this), 0);
+            }
+            for (int i = 0; i < 3; i++) world.spawnParticle(EnumParticleTypes.SMOKE_LARGE, posX + f, posY + 2.0 + f1, posZ + f2, 0.0, 0.0, 0.0);
+            motionX = motionY = motionZ = 0.0;
+            if (deathTicks == 200 && !world.isRemote) {
+                xp(2000);
+                world.spawnEntity(new net.minecraft.entity.item.EntityItem(world, posX, posY, posZ, new ItemStack(SWContent.GoldenSoul)));
+                setDead();
+            }
+        }
+
+        private void xp(int i) {
+            while (i > 0) {
+                int j = net.minecraft.entity.item.EntityXPOrb.getXPSplit(i);
+                i -= j;
+                world.spawnEntity(new net.minecraft.entity.item.EntityXPOrb(world, posX, posY, posZ, j));
+            }
+        }
+
+        @Override public void writeEntityToNBT(net.minecraft.nbt.NBTTagCompound c) { super.writeEntityToNBT(c); c.setInteger("SuperAttack", superattacktime); }
+        @Override public void readEntityFromNBT(net.minecraft.nbt.NBTTagCompound c) { super.readEntityFromNBT(c); superattacktime = c.getInteger("SuperAttack"); }
     }
 
     @Nullable static BlockPos none() { return null; }
